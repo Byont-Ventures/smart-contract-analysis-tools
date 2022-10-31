@@ -1,0 +1,50 @@
+ARG UBUNTU_VERSION=22.04
+FROM ubuntu:${UBUNTU_VERSION} as base
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt update               \
+    && apt upgrade -y           \
+    && apt install -y           \
+    apt-utils                   \
+    software-properties-common  \
+    build-essential             \
+    cvc4                        \
+    wget                        \
+    tar                         \
+    unzip                       \
+    graphviz                    \
+    python3-pip
+
+# Install git
+RUN export DEBIAN_FRONTEND=noninteractive      \
+    && add-apt-repository -y ppa:git-core/ppa  \
+	&& apt update       \
+    && apt upgrade -y   \
+	&& apt install -y git
+    
+# Install z3
+ARG Z3_VERSION=4.11.2
+RUN wget https://github.com/Z3Prover/z3/releases/download/z3-${Z3_VERSION}/z3-${Z3_VERSION}-x64-glibc-2.31.zip \
+    && unzip z3-${Z3_VERSION}-x64-glibc-2.31.zip \
+    && rm z3-${Z3_VERSION}-x64-glibc-2.31.zip
+
+RUN export Z3_VERSION_MAIN=$(echo ${Z3_VERSION} | cut -d'.' -f1)            \
+    && export Z3_VERSION_MIDDLE=$(echo ${Z3_VERSION} | cut -d'.' -f2)       \
+    && cd z3-${Z3_VERSION}-x64-glibc-2.31/bin                               \
+    && mv libz3.so /lib/libz3.so.${Z3_VERSION_MAIN}.${Z3_VERSION_MIDDLE}
+    
+RUN rm -r z3-${Z3_VERSION}-x64-glibc-2.31
+
+# Install solc
+ARG SOLC_VERSION=0.8.17
+RUN pip3 install solc-select
+RUN solc-select install ${SOLC_VERSION} \
+    && solc-select use ${SOLC_VERSION}
+
+# Install hevm
+RUN wget https://github.com/dapphub/dapptools/releases/download/seth%2F0.11.0/hevm -P /usr/bin
+RUN chmod a+x /usr/bin/hevm
+
+# Install Slither
+ARG SLITHER_VERSION=0.9.0
+RUN pip3 install slither-analyzer==${SLITHER_VERSION}

@@ -1,0 +1,11 @@
+[package]
+name = "report_generator"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+mythril_runner = { path = "../mythril/mythril_runner" }
+slither_runner = { path = "../slither/slither_runner" }
+smtchecker_runner = { path = "../SMTChecker/smtchecker_runner" }
