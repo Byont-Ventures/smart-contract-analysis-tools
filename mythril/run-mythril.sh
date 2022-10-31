@@ -35,7 +35,9 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
 
 docker run --rm -v ${projectRoot}:/prj mythril/myth:0.23.10                 \
-    -v 4 analyze                                                            \
+    -v 4                                                                    \ 
+    -o json                                                                 \
+    analyze                                                                 \
     --max-depth 50                                                          \
     /prj/${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol:${contractName}  \
     2>&1 | tee -a ${outputFile}
