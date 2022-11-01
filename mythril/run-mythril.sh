@@ -35,13 +35,15 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
 
 docker run --rm -v ${projectRoot}:/prj mythril/myth:0.23.10 \
-    -v 0                                                    \
+     -v 4                                                   \
     analyze                                                 \
     --solv 0.8.17                                           \
     -o jsonv2                                               \
     --transaction-count 4                                   \
     --parallel-solving                                      \
-    --strategy bsf                                          \
-    --max-depth 50                                          \
+    --strategy bfs                                          \
+    --max-depth 256                                         \
+    --call-depth-limit 6                                    \
+    --no-onchain-data                                       \
     /prj/${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol:${contractName}  \
     2>&1 | tee -a ${outputFile}

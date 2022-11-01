@@ -35,11 +35,12 @@ All of these commands should be executed from the root folder of the main projec
 ### Generate a report for a contract
 
 ```bash
-$ yarn --cwd <path to this folder> run                  \
-    scan:generate-report                                \
-    <path to project root>                              \
-    <relative path to this folder from project root>    \
-    <relative path to source files from project root>   \
+$ yarn --cwd <path to this folder> run                          \
+    scan:generate-report                                        \
+    <path to project root>                                      \
+    <relative path to this folder from project root>            \
+    <relative path to source files from project root>           \
+    <relative path to report output folder from project root>   \
     <your contract name without '.sol'>
 ```
 
@@ -49,8 +50,9 @@ So for example:
 $ yarn --cwd ./security-scans run   \
     scan:generate-report            \
     ${PWD}                          \
-    ./security-scans                \
+    ./security-scans/               \
     ./src/smart-contracts/          \
+    ./reports/
     coolDefiContract
 ```
 
