@@ -34,10 +34,14 @@ echo "Run Mythril"                                                          | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj mythril/myth:0.23.10                 \
-    -v 4                                                                    \
-    analyze                                                                 \
-    -o jsonv2                                                               \
-    --max-depth 50                                                          \
+docker run --rm -v ${projectRoot}:/prj mythril/myth:0.23.10 \
+    -v 0                                                    \
+    analyze                                                 \
+    --solv 0.8.17                                           \
+    -o jsonv2                                               \
+    --transaction-count 4                                   \
+    --parallel-solving                                      \
+    --strategy bsf                                          \
+    --max-depth 50                                          \
     /prj/${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol:${contractName}  \
     2>&1 | tee -a ${outputFile}
