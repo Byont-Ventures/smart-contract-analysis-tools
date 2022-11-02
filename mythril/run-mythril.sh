@@ -4,6 +4,7 @@ projectRoot=$1
 pathToSecurityScansFromRoot=$2
 pathToSourceFileFromRoot=$3
 contractName=$4
+solcVersion=0.8.17
 
 if [ -z "${contractName}" ]
 then
