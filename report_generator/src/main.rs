@@ -19,10 +19,11 @@ fn main() {
     let project_root_path_abs = &args[1];
     let security_scan_path_rel = &args[2];
     let contract_source_path_rel = &args[3];
-    let contract_name = &args[4];
+    let report_output_path_rel = &args[4];
+    let contract_name = &args[5];
 
     let filePath =
-        format!("{project_root_path_abs}/{security_scan_path_rel}/report-{contract_name}.md");
+        format!("{project_root_path_abs}/{report_output_path_rel}/{contract_name}/report-{contract_name}.md");
     let mut file = match create_file(&filePath) {
         Ok(f) => f,
         _ => {
