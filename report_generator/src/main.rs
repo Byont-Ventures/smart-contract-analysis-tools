@@ -10,7 +10,7 @@ use mythril_runner as mythril;
 use slither_runner as slither;
 use smtchecker_runner as smtchecker;
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Config {
     environment: ConfigEnvironment,
     report: ConfigReport,
@@ -19,7 +19,7 @@ struct Config {
     smtchecker: ConfigSmtchecker,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct ConfigEnvironment {
     project_root: String,
     security_scans_rel_path: String,
@@ -28,29 +28,29 @@ struct ConfigEnvironment {
     solc_version: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct ConfigReport {
     report_output_rel_path: String,
     contract: Vec<ConfigReportConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct ConfigReportConfig {
     name: String,
     report_custom_name: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct ConfigMythril {
     enabled: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct ConfigSlither {
     enabled: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct ConfigSmtchecker {
     enabled: bool,
 }
@@ -75,77 +75,91 @@ fn main() {
         }
     };
 
-    println!("{:#?}", config);
+    let project_root_path_abs = config.environment.project_root;
+    let report_rel_path = config.report.report_output_rel_path;
+    let security_scan_path_rel = config.environment.security_scans_rel_path;
+    let contract_source_path_rel = config.environment.source_rel_path;
 
-    // let filePath =
-    //     format!("{project_root_path_abs}/{report_output_path_rel}/{contract_name}/report-{contract_name}.md");
-    // let mut file = match create_file(&filePath) {
-    //     Ok(f) => f,
-    //     _ => {
-    //         println!("\nERROR: Failed to create file: {}\n", filePath);
-    //         process::exit(1);
-    //     }
-    // };
+    for contract in config.report.contract {
+        let contract_name = contract.name;
+        let contract_report_extra_name = match contract.report_custom_name {
+            Some(s) => s,
+            _ => "".to_string(),
+        };
 
-    // let main_header = "# Code report\n\n";
-    // write_to_report(&mut file, &main_header);
+        let filePath =
+        format!("{project_root_path_abs}/{report_rel_path}/{contract_name}/report-{contract_name}-{contract_report_extra_name}.md");
+        let mut file = match create_file(&filePath) {
+            Ok(f) => f,
+            _ => {
+                println!("\nERROR: Failed to create file: {}\n", filePath);
+                process::exit(1);
+            }
+        };
 
-    // //---------------
-    // // Slither
-    // //---------------
+        let main_header = "# Code report\n\n";
+        write_to_report(&mut file, &main_header);
 
-    // let slither_header = "## Slither\n\n";
-    // write_to_report(&mut file, &slither_header);
+        //---------------
+        // Slither
+        //---------------
+        if config.slither.enabled {
+            let slither_header = "## Slither\n\n";
+            write_to_report(&mut file, &slither_header);
 
-    // let slither_result = slither::run_slither(
-    //     project_root_path_abs,
-    //     security_scan_path_rel,
-    //     contract_source_path_rel,
-    //     contract_name,
-    // );
+            let slither_result = slither::run_slither(
+                &project_root_path_abs,
+                &security_scan_path_rel,
+                &contract_source_path_rel,
+                &contract_name,
+            );
 
-    // let slither_markdown_content = match slither::format_output_to_markdown(
-    //     project_root_path_abs,
-    //     security_scan_path_rel,
-    //     contract_name,
-    // ) {
-    //     Ok(s) => s,
-    //     _ => "".to_string(),
-    // };
+            let slither_markdown_content = match slither::format_output_to_markdown(
+                &project_root_path_abs,
+                &security_scan_path_rel,
+                &contract_name,
+            ) {
+                Ok(s) => s,
+                _ => "".to_string(),
+            };
 
-    // write_to_report(&mut file, &slither_markdown_content);
+            write_to_report(&mut file, &slither_markdown_content);
+        }
 
-    // //---------------
-    // // SMTChecker
-    // //---------------
+        //---------------
+        // SMTChecker
+        //---------------
+        if config.smtchecker.enabled {
+            let smtchecker_header = "## SMTChecker\n\n";
+            write_to_report(&mut file, &smtchecker_header);
 
-    // let smtchecker_header = "## SMTChecker\n\n";
-    // write_to_report(&mut file, &smtchecker_header);
+            let smtchecker_result = smtchecker::run_smtchecker(
+                &project_root_path_abs,
+                &security_scan_path_rel,
+                &contract_source_path_rel,
+                &contract_name,
+            );
 
-    // let smtchecker_result = smtchecker::run_smtchecker(
-    //     project_root_path_abs,
-    //     security_scan_path_rel,
-    //     contract_source_path_rel,
-    //     contract_name,
-    // );
+            write_to_report(&mut file, &smtchecker_result.replace("\n", "\n\n"));
+        }
 
-    // write_to_report(&mut file, &smtchecker_result.replace("\n", "\n\n"));
+        //---------------
+        // Mythril
+        //---------------
+        if config.mythril.enabled {
+            let mythril_header = "## Mythril\n\n";
+            write_to_report(&mut file, &mythril_header);
 
-    // //---------------
-    // // Mythril
-    // //---------------
+            let mythril_result = mythril::run_mythril(
+                &project_root_path_abs,
+                &security_scan_path_rel,
+                &contract_source_path_rel,
+                &contract_name,
+            );
 
-    // let mythril_header = "## Mythril\n\n";
-    // write_to_report(&mut file, &mythril_header);
-
-    // let mythril_result = mythril::run_mythril(
-    //     project_root_path_abs,
-    //     security_scan_path_rel,
-    //     contract_source_path_rel,
-    //     contract_name,
-    // );
-
-    // write_to_report(&mut file, &mythril_result.replace("\n", "\n\n"));
+            write_to_report(&mut file, &mythril_result.replace("\n", "\n\n"));
+        }
+    }
 }
 
 fn create_file(file_name: &str) -> std::io::Result<File> {
