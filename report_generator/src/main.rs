@@ -24,8 +24,8 @@ struct ConfigEnvironment {
     project_root: String,
     security_scans_rel_path: String,
     source_rel_path: String,
-    remappings: Option<Vec<String>>,
-    solc_version: Option<String>,
+    remappings: Vec<String>,
+    solc_version: String,
 }
 
 #[derive(Deserialize)]
@@ -112,6 +112,7 @@ fn main() {
                 &security_scan_path_rel,
                 &contract_source_path_rel,
                 &contract_name,
+                &config.environment.remappings,
             );
 
             let slither_markdown_content = match slither::format_output_to_markdown(

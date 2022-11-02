@@ -1,11 +1,5 @@
 {
   "filter_paths": "libs,node_modules",
-  "solc_remaps": [
-    "ds-test/=libs/forge-std/lib/ds-test/src/",
-    "forge-std/=libs/forge-std/src/",
-    "@openzeppelin/=node_modules/@openzeppelin/",
-    "@smart-contracts=src/smart-contracts/"
-  ],
   "printers_to_run": "human-summary",
   "detectors_to_run": "all"
 }

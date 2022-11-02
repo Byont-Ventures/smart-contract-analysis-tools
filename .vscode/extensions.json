@@ -4,6 +4,6 @@
     "streetsidesoftware.code-spell-checker",
     "rust-lang.rust-analyzer",
     "vivaxy.vscode-conventional-commits",
-    "bungcip.better-toml"
+    "tamasfe.even-better-toml"
   ]
 }

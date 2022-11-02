@@ -18,11 +18,12 @@ pub fn run_slither(
     security_scan_path_rel: &str,
     contract_source_path_rel: &str,
     contract_name: &str,
+    remappings: &Vec<String>,
 ) -> String {
     // TODO: see if sudo can be removed
     let command = format!(
-        "sudo {project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {}",
-        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name
+        "sudo {project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {} {}",
+        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name, ""
     );
 
     let result = Command::new("sh")
