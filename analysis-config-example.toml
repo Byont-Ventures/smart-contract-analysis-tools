@@ -18,9 +18,9 @@ report_output_rel_path = "./report"
 name = "VeriToken"
 report_custom_name = ""
 
-# [[report.contract]]
-# name = "VeriAuctionTokenForEth_problems"
-# report_custom_name = ""
+[[report.contract]]
+name = "VeriAuctionTokenForEth_problems"
+report_custom_name = ""
 
 [mythril]
 enabled = false

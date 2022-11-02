@@ -6,11 +6,12 @@ pub fn run_mythril(
     security_scan_path_rel: &str,
     contract_source_path_rel: &str,
     contract_name: &str,
+    solc_version: &str,
 ) -> String {
     // TODO: see if sudo can be removed
     let command = format!(
-        "sudo {project_root_path_abs}/{security_scan_path_rel}/mythril/run-mythril.sh {} {} {} {}",
-        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name
+        "sudo {project_root_path_abs}/{security_scan_path_rel}/mythril/run-mythril.sh {} {} {} {} {}",
+        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name, solc_version
     );
 
     let result = Command::new("sh")

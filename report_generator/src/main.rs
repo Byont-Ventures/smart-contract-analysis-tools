@@ -157,6 +157,7 @@ fn main() {
                 &security_scan_path_rel,
                 &contract_source_path_rel,
                 &contract_name,
+                &config.environment.solc_version,
             );
 
             write_to_report(&mut file, &mythril_result.replace("\n", "\n\n"));
