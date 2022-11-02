@@ -1,0 +1,29 @@
+[environment]
+# project-root is used to find foundry.toml and use it's configuration as well.
+project_root = "/path/to/project/root"
+security_scans_rel_path = "./security-scans"
+source_rel_path = "./src/smart-contracs"
+
+# This parameters below are only used when they are not found in foundry.toml
+remappings = []
+solc_version = "0.8.17"
+
+[report]
+report_output_rel_path = "./report"
+
+[[report.contract]]
+    name = "contract1"
+    report_custom_name = "small-change-in-function-x"
+
+[[report.contract]]
+    name = "contract2"
+    report_custom_name = "different-algorithm"
+
+[mythril]
+enabled = true
+
+[slither]
+enabled = true
+
+[smtchecker]
+enabled = true
