@@ -88,7 +88,7 @@ fn main() {
         };
 
         let filePath =
-        format!("{project_root_path_abs}/{report_rel_path}/{contract_name}/report-{contract_name}-{contract_report_extra_name}.md");
+        format!("{project_root_path_abs}/{report_rel_path}/{contract_name}/report-{contract_name}{contract_report_extra_name}.md");
         let mut file = match create_file(&filePath) {
             Ok(f) => f,
             _ => {

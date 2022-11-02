@@ -35,5 +35,5 @@ The configuration of for the report generation is done in a `.toml` file. This c
 ```bash
 $ yarn --cwd <path to this folder> run  \
     scan:generate-report                \
-    <relative path to config file>      \
+    <absolute path to config file>
 ```
