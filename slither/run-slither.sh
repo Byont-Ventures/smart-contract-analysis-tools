@@ -4,7 +4,6 @@ projectRoot=$1
 pathToSecurityScansFromRoot=$2
 pathToSourceFileFromRoot=$3
 contractName=$4
-solcRemaps=$5
 
 solcRemaps="ds-test/=libs/forge-std/lib/ds-test/src/,
     forge-std/=libs/forge-std/src/,
@@ -33,5 +32,4 @@ docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-tools:lat
     && rm -f ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json           \
     && slither --json ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json  \
     --config-file ${pathToSecurityScansFromRoot}/slither/slither.config.json    \
-    --solc-remaps ${solcRemaps}                                                 \
     ${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}

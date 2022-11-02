@@ -2,7 +2,7 @@
 # project-root is used to find foundry.toml and use it's configuration as well.
 project_root = "/path/to/project/root"
 security_scans_rel_path = "./security-scans"
-source_rel_path = "./src/smart-contracs"
+source_rel_path = "./src/smart-contracts"
 remappings = [
     "ds-test/=libs/forge-std/lib/ds-test/src/",
     "forge-std/=libs/forge-std/src/",

@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Result, Value};
+use serde_json::{json, Result, Value};
 use std::any::type_name;
 use std::fs;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::path::Path;
 use std::process;
 use std::process::Command;
@@ -13,6 +13,14 @@ fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
 }
 
+#[derive(Serialize, Deserialize)]
+struct SlitherConfig {
+    filter_paths: String,
+    solc_remaps: Vec<String>,
+    printers_to_run: String,
+    detectors_to_run: String,
+}
+
 pub fn run_slither(
     project_root_path_abs: &str,
     security_scan_path_rel: &str,
@@ -20,10 +28,37 @@ pub fn run_slither(
     contract_name: &str,
     remappings: &Vec<String>,
 ) -> String {
+    let slither_config_path =
+        format!("{project_root_path_abs}/{security_scan_path_rel}/slither/slither.config.json");
+
+    let slither_config = fs::read_to_string(&slither_config_path)
+        .expect(&format!("ERROR: Cannot read {slither_config_path}!"));
+
+    let mut config: SlitherConfig = match serde_json::from_str(&slither_config) {
+        Ok(c) => c,
+        _ => {
+            println!("\nERROR: Error parsing slither.config.json {slither_config}\n");
+            process::exit(1);
+        }
+    };
+
+    config.solc_remaps = remappings.to_vec();
+
+    let mut file = match File::create(&slither_config_path) {
+        Ok(f) => f,
+        _ => {
+            println!("\nERROR: Cannot open {slither_config_path}\n");
+            process::exit(1);
+        }
+    };
+
+    let json_string = json!(config).to_string();
+    file.write_all(json_string.as_bytes());
+
     // TODO: see if sudo can be removed
     let command = format!(
-        "sudo {project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {} {}",
-        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name, ""
+        "sudo {project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {}",
+        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name
     );
 
     let result = Command::new("sh")
