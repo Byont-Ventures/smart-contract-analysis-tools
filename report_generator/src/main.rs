@@ -3,6 +3,7 @@ use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
 use std::process;
 
 // Import the different tools
@@ -164,6 +165,17 @@ fn main() {
 }
 
 fn create_file(file_name: &str) -> std::io::Result<File> {
+    let pathOfReport = match Path::new(file_name).parent() {
+        Some(p) => p,
+        _ => {
+            println!(
+                "{}",
+                format!("\nERROR: Could not get parent path {file_name}!\n")
+            );
+            process::exit(1);
+        }
+    };
+    fs::create_dir_all(pathOfReport)?;
     let file = File::create(file_name)?;
     return Ok(file);
 }
