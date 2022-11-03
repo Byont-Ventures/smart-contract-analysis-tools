@@ -35,8 +35,11 @@ name = "report_generator"
 version = "0.1.0"
 dependencies = [
  "mythril_runner",
+ "serde",
+ "serde_derive",
  "slither_runner",
  "smtchecker_runner",
+ "toml",
 ]
 
 [[package]]
@@ -97,6 +100,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "toml"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

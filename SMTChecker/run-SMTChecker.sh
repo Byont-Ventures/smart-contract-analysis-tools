@@ -4,6 +4,8 @@ projectRoot=$1
 pathToSecurityScansFromRoot=$2
 pathToSourceFileFromRoot=$3
 contractName=$4
+solcVersion=$5
+remappings=$6
 
 if [ -z "${contractName}" ]
 then
@@ -24,11 +26,9 @@ echo ""                                                                     | te
 
 docker run --pull --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-tools:latest bash -c " \
     cd /prj                                             \
+    && solc-select use ${solcVersion}                   \
     && solc                                             \
-    ds-test/=libs/forge-std/lib/ds-test/src/            \
-    forge-std/=libs/forge-std/src/                      \
-    @openzeppelin/=node_modules/@openzeppelin/          \
-    @smart-contracts=src/smart-contracts/               \
+    ${remappings}                                       \
     --model-checker-engine all                          \
     --model-checker-solvers all                         \
     --model-checker-targets all                         \
