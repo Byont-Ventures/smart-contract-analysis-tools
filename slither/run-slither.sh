@@ -4,11 +4,7 @@ projectRoot=$1
 pathToSecurityScansFromRoot=$2
 pathToSourceFileFromRoot=$3
 contractName=$4
-
-solcRemaps="ds-test/=libs/forge-std/lib/ds-test/src/,
-    forge-std/=libs/forge-std/src/,
-    @openzeppelin/=node_modules/@openzeppelin/,
-    @smart-contracts=src/smart-contracts/"
+solcVersion=$5
 
 if [ -z "${contractName}" ]
 then
@@ -27,9 +23,10 @@ echo "Run Slither"                                                          | te
 echo "================================================================="    | tee -a ${outputFile}        
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-tools:latest /bin/bash -c "  \
-    cd /prj                                                                                         \
-    && rm -f ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json           \
-    && slither --json ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json  \
+docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-tools:latest /bin/bash -c "                  \
+    cd /prj                                                                                                         \
+    && solc-select use ${solcVersion}                                                                               \
+    && rm -f ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json             \
+    && slither --json ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json    \
     --config-file ${pathToSecurityScansFromRoot}/slither/slither.config.json    \
     ${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}

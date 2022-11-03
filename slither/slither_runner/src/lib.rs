@@ -26,6 +26,7 @@ pub fn run_slither(
     security_scan_path_rel: &str,
     contract_source_path_rel: &str,
     contract_name: &str,
+    solc_version: &str,
     remappings: &Vec<String>,
 ) -> String {
     let slither_config_path =
@@ -57,8 +58,8 @@ pub fn run_slither(
 
     // TODO: see if sudo can be removed
     let command = format!(
-        "sudo {project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {}",
-        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name
+        "sudo {project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {} {}",
+        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, solc_version, contract_name
     );
 
     let result = Command::new("sh")

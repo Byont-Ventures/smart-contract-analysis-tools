@@ -5,6 +5,7 @@ pathToSecurityScansFromRoot=$2
 pathToSourceFileFromRoot=$3
 contractName=$4
 solcVersion=$5
+remappings=$6
 
 if [ -z "${contractName}" ]
 then
@@ -25,10 +26,7 @@ echo ""                                                                     | te
 
 docker run --rm -v ${projectRoot}:/prj ethereum/solc:${solcVersion}     \
     --base-path /prj                                                    \
-    ds-test/=libs/forge-std/lib/ds-test/src/                            \
-    forge-std/=libs/forge-std/src/                                      \
-    @openzeppelin/=node_modules/@openzeppelin/                          \
-    @smart-contracts=src/smart-contracts/                               \
+    ${remappings}                                                       \
     -o /prj/${pathToSourceFileFromRoot}/solc-out                        \
     --opcodes                                                           \
     --asm                                                               \
