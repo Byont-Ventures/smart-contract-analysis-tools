@@ -44,19 +44,15 @@ pub fn run_mythril(
 
 // Reverse engineerd from this:
 //  https://github.com/ConsenSys/mythril/blob/21b3e92747f6b5ef1e22825756ba63f5b1c58621/mythril/analysis/report.py#L313
-#[derive(Serialize, Deserialize)]
-struct MythrilJsonV2Top {
-    JSON: Vec<MythrilJsonV2>,
-}
 
 #[derive(Serialize, Deserialize)]
 struct MythrilJsonV2 {
     issues: Vec<MythrilJsonV2Issue>,
-    sourceType: String,
-    sourceFormat: String,
-    sourceList: Vec<String>,
     // TODO: Look further into the meta field
-    meta: MythrilJsonV2Meta,
+    meta: Value, //MythrilJsonV2Meta
+    sourceFormat: String,
+    sourceList: Value, //Vec<String>,
+    sourceType: String,
 }
 
 // Issues
@@ -66,8 +62,8 @@ struct MythrilJsonV2Issue {
     extra: MythrilJsonV2IssueExtra,
     locations: Vec<MythrilJsonV2IssueLocations>,
     severity: String,
-    swsID: String,
-    swsTitle: String,
+    swcID: String,
+    swcTitle: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -78,8 +74,8 @@ struct MythrilJsonV2IssueDescriptions {
 
 #[derive(Serialize, Deserialize)]
 struct MythrilJsonV2IssueExtra {
-    discoveryTime: i32,
-    testCases: Option<Vec<Value>>,
+    discoveryTime: i64,
+    testCases: Vec<Value>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -131,16 +127,14 @@ pub fn format_output_to_markdown(
         };
 
         match mythril_jsonv2_result {
-            Ok(s) => mythril_jsonv2_string.push_str(&s),
+            Ok(s) => mythril_jsonv2_string.push_str(rem_first_and_last(&s)),
             _ => {
                 println!("\nERROR: Could not parse mythril jsonv2\n");
                 process::exit(1);
             }
         };
 
-        println!("{mythril_jsonv2_string}");
-
-        //let result: MythrilJsonV2Top = serde_json::from_str(&mythril_jsonv2_string)?;
+        let result: MythrilJsonV2 = serde_json::from_str(&mythril_jsonv2_string)?;
     }
 
     return Ok(mythril_jsonv2_string.to_string());
@@ -152,4 +146,11 @@ where
 {
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
+}
+
+fn rem_first_and_last(value: &str) -> &str {
+    let mut chars = value.chars();
+    chars.next();
+    chars.next_back();
+    chars.as_str()
 }
