@@ -164,7 +164,16 @@ fn main() {
                 &config.environment.remappings,
             );
 
-            write_to_report(&mut file, &mythril_result.replace("\n", "\n\n"));
+            let mythril_markdown_content = match mythril::format_output_to_markdown(
+                &project_root_path_abs,
+                &security_scan_path_rel,
+                &contract_name,
+            ) {
+                Ok(s) => s,
+                _ => "".to_string(),
+            };
+
+            write_to_report(&mut file, &mythril_markdown_content.replace("\n", "\n\n"));
         }
     }
 }

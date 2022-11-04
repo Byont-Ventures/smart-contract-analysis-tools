@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Result, Value};
+use std::fs;
+use std::fs::File;
+use std::io::{self, BufRead, Write};
+use std::path::Path;
+use std::process;
 use std::process::Command;
 use std::str;
 
@@ -46,7 +51,7 @@ struct MythrilJsonV2Top {
 
 #[derive(Serialize, Deserialize)]
 struct MythrilJsonV2 {
-    issues: Vec<MythrilJsonV2Issue?,
+    issues: Vec<MythrilJsonV2Issue>,
     sourceType: String,
     sourceFormat: String,
     sourceList: Vec<String>,
@@ -58,7 +63,7 @@ struct MythrilJsonV2 {
 #[derive(Serialize, Deserialize)]
 struct MythrilJsonV2Issue {
     description: MythrilJsonV2IssueDescriptions,
-    extra: MythrilJsonV2OIssueExtra,
+    extra: MythrilJsonV2IssueExtra,
     locations: Vec<MythrilJsonV2IssueLocations>,
     severity: String,
     swsID: String,
@@ -85,7 +90,7 @@ struct MythrilJsonV2IssueLocations {
 // Meta
 #[derive(Serialize, Deserialize)]
 struct MythrilJsonV2Meta {
-    logs: Options<MythrilJsonV2MetaLogs>,
+    logs: Option<MythrilJsonV2MetaLogs>,
     mythril_execution_info: MythrilJsonV2MetaExecutionInfo,
 }
 
@@ -100,7 +105,7 @@ struct MythrilJsonV2MetaLogs {
 #[derive(Serialize, Deserialize)]
 struct MythrilJsonV2MetaExecutionInfo {
     analysis_duration: i32,
-    execution_info: Value
+    execution_info: Value,
 }
 
 pub fn format_output_to_markdown(
@@ -108,15 +113,43 @@ pub fn format_output_to_markdown(
     security_scan_path_rel: &str,
     contract_name: &str,
 ) -> Result<String> {
-    let slither_json_path =
-        format!("{project_root_path_abs}/{security_scan_path_rel}/slither/results/{contract_name}/{contract_name}-output.json");
+    let mythril_output_path =
+        format!("{project_root_path_abs}/{security_scan_path_rel}/mythril/results/{contract_name}/{contract_name}-Mythril.result");
 
-    let contents =
-        fs::read_to_string(&slither_json_path).expect("Should have been able to read the file");
+    let contents = fs::read_to_string(&mythril_output_path).expect(&format!(
+        "Should have been able to read the file {mythril_output_path}"
+    ));
 
-    let result: SlitherOutput = serde_json::from_str(&contents)?;
+    let mut mythril_jsonv2_string: String = "".to_string();
+    if let Ok(lines) = read_lines(mythril_output_path) {
+        let mythril_jsonv2_result = match lines.last() {
+            Some(l) => l,
+            _ => {
+                println!("\nERROR: Could not get last line of mythril output\n");
+                process::exit(1);
+            }
+        };
 
-    if !result.success {
-        println!("\nERROR: Slither had an error while running!\nSee {slither_json_path} for more info.\n");
-        process::exit(1);
+        match mythril_jsonv2_result {
+            Ok(s) => mythril_jsonv2_string.push_str(&s),
+            _ => {
+                println!("\nERROR: Could not parse mythril jsonv2\n");
+                process::exit(1);
+            }
+        };
+
+        println!("{mythril_jsonv2_string}");
+
+        //let result: MythrilJsonV2Top = serde_json::from_str(&mythril_jsonv2_string)?;
     }
+
+    return Ok(mythril_jsonv2_string.to_string());
+}
+
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where
+    P: AsRef<Path>,
+{
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
+}
