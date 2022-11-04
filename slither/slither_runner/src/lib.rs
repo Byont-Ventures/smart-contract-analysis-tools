@@ -59,7 +59,7 @@ pub fn run_slither(
     // TODO: see if sudo can be removed
     let command = format!(
         "sudo {project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {} {}",
-        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, solc_version, contract_name
+        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name, solc_version
     );
 
     let result = Command::new("sh")
