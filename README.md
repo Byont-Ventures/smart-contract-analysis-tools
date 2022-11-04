@@ -7,6 +7,7 @@ This repository is meant to be used as a submodule in existing projects.
 ## Pre-requisites
 
 - Docker should be installed
+  - Make sure that Docker can run without sudo ([docs](https://docs.docker.com/engine/install/linux-postinstall/)).
 
 ## Installing Rust
 

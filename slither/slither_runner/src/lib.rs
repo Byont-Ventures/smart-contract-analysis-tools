@@ -56,10 +56,13 @@ pub fn run_slither(
     let json_string = json!(config).to_string();
     file.write_all(json_string.as_bytes());
 
-    // TODO: see if sudo can be removed
     let command = format!(
-        "sudo {project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {} {}",
-        project_root_path_abs, security_scan_path_rel, contract_source_path_rel, contract_name, solc_version
+        "{project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {} {}",
+        project_root_path_abs,
+        security_scan_path_rel,
+        contract_source_path_rel,
+        contract_name,
+        solc_version
     );
 
     let result = Command::new("sh")
