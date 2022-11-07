@@ -1,0 +1,45 @@
+
+=================================================================
+Setup the local environment
+=================================================================
+
+yarn install v1.22.19
+warning package.json: No license field
+warning No license field
+[1/4] Resolving packages...
+success Already up-to-date.
+Done in 0.12s.
+
+=================================================================
+Flatten the contract to be verified
+=================================================================
+
+Flattened file written at ../flattened/VeriToken-flat.sol
+
+=================================================================
+Generate helper modules for kevm to make writing claims easier
+=================================================================
+
+INFO 2022-10-14 12:21:05,975 kevm_pyk.solc_to_k - Running: solc --standard-json
+INFO 2022-10-14 12:21:06,074 kevm_pyk.solc_to_k - Timing [0.099]: solc --standard-json
+INFO 2022-10-14 12:21:06,074 kevm_pyk.solc_to_k - Completed: solc --standard-json
+WARNING 2022-10-14 12:21:06,075 kevm_pyk.solc_to_k - solc warning:
+Warning: Function state mutability can be restricted to pure
+   --> VeriToken-flat.sol:521:6:
+    |
+521 |      function decimals() public view override returns (uint8) {
+    |      ^ (Relevant source part starts here and spans across multiple lines).
+
+
+0m2.192s 0m1.956s 0m0.151s python3 -m kevm_pyk solc-to-k /prj/flattened/VeriToken-flat.sol VeriToken --definition root/evm-semantics/.build/usr/lib/kevm/haskell --profile --main-module VeriToken-VERIFICATION --definition root/evm-semantics/.build/usr/lib/kevm/haskell -I /root/evm-semantics/.build/usr/lib/kevm/include/kframework -I /root/evm-semantics/.build/usr/lib/kevm/blockchain-k-plugin/include/kframework --verbose
+
+=================================================================
+Generate the required files for verification
+=================================================================
+
+
+=================================================================
+Verify the the Solidity contract
+=================================================================
+
+#Top
