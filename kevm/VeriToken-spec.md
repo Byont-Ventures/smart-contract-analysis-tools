@@ -117,10 +117,90 @@ claim [totalSupply]:
         andBool TOTALSUPPLY     ==Int #lookup(ACCT_STORAGE,  TOTALSUPPLY_KEY)
 ```
 
+###  Calling approve(address spender,  uint256 amount) works
+
+```
+claim [approve.success]:
+    <mode>     NORMAL   </mode>
+    <schedule> ISTANBUL </schedule>
+
+    <callStack> .List                                      </callStack>
+    <program>   #binRuntime(VeriToken)                         </program>
+    <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
+    <static>    false                                      </static>
+
+    <id>         ACCTID      => ?_ </id>
+    <caller>     OWNER       => ?_ </caller>
+    <localMem>   .Memory     => ?_ </localMem>
+    <memoryUsed> 0           => ?_ </memoryUsed>
+    <wordStack>  .WordStack  => ?_ </wordStack>
+    <pc>         0           => ?_ </pc>
+    <endPC>      _           => ?_ </endPC>
+    <gas>        #gas(_VGAS) => ?_ </gas>
+    <callValue>  0           => ?_ </callValue>
+    <substate> _             => ?_ </substate>
+
+    <callData>   VeriToken.approve(SPENDER, AMOUNT) </callData>
+    <k>          #execute   => #halt ...        </k>
+    <output>     .ByteArray => #buf(32, 1)      </output>
+    <statusCode> _          => EVMC_SUCCESS     </statusCode>
+
+    <account>
+        <acctID> ACCTID </acctID>
+        <storage> ACCT_STORAGE => ACCT_STORAGE [ ALLOWANCE_KEY <- AMOUNT ] </storage>
+        ...
+    </account>
+
+    requires ALLOWANCE_KEY ==Int #loc(VeriToken._allowances[OWNER][SPENDER])
+        andBool #rangeAddress(OWNER)
+        andBool #rangeAddress(SPENDER)
+        andBool #rangeUInt(256, AMOUNT)
+        andBool OWNER =/=Int 0
+        andBool SPENDER =/=Int 0
+```
+
+```
+claim [approve.revert]:
+    <mode>     NORMAL   </mode>
+    <schedule> ISTANBUL </schedule>
+
+    <callStack> .List                                      </callStack>
+    <program>   #binRuntime(VeriToken)                         </program>
+    <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
+    <static>    false                                      </static>
+
+    <id>         ACCTID      => ?_ </id>
+    <caller>     OWNER       => ?_ </caller>
+    <localMem>   .Memory     => ?_ </localMem>
+    <memoryUsed> 0           => ?_ </memoryUsed>
+    <wordStack>  .WordStack  => ?_ </wordStack>
+    <pc>         0           => ?_ </pc>
+    <endPC>      _           => ?_ </endPC>
+    <gas>        #gas(_VGAS) => ?_ </gas>
+    <callValue>  0           => ?_ </callValue>
+    <substate> _             => ?_ </substate>
+
+    <callData>   VeriToken.approve(SPENDER, AMOUNT) </callData>
+    <k>          #execute   => #halt ...        </k>
+    <output>     _          => ?_               </output>
+    <statusCode> _          => EVMC_REVERT      </statusCode>
+
+    <acctID> ACCTID </acctID>
+        <account>
+        <storage> _ACCT_STORAGE </storage>
+        ...
+    </account>
+
+    requires #rangeAddress(OWNER)
+        andBool #rangeAddress(SPENDER)
+        andBool #rangeUInt(256, AMOUNT)
+        andBool (OWNER ==Int 0 orBool SPENDER ==Int 0)
+```
+
 ### Calling transfer(address to, uint256 amount) works
 
 ```k
-claim [transfer]:
+claim [transfer.success]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
 
@@ -151,18 +231,15 @@ claim [transfer]:
 
     requires BALANCE_OWNER_KEY ==Int #loc(VeriToken._balances[OWNER])
         andBool BALANCE_RECEIVER_KEY ==Int #loc(VeriToken._balances[RECEIVER])
-        andBool BALANCE_OLD_OWNER ==Int #lookup(ACCT_STORAGE, BALANCE_OWNER_KEY)
-        andBool BALANCE_OLD_RECEIVER ==Int #lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY)
-        andBool BALANCE_OLD_OWNER >=Int AMOUNT
-        andBool #rangeUInt(256, (BALANCE_OLD_RECEIVER +Int AMOUNT))
-        andBool BALANCE_NEW_OWNER ==Int (BALANCE_OLD_OWNER -Int AMOUNT)
-        andBool BALANCE_NEW_RECEIVER ==Int (BALANCE_OLD_RECEIVER +Int AMOUNT)
         andBool #rangeUInt(256, AMOUNT)
         andBool #rangeAddress(OWNER)
         andBool #rangeAddress(RECEIVER)
         andBool OWNER =/=Int 0
         andBool RECEIVER =/=Int 0
-
+        andBool #lookup(ACCT_STORAGE, BALANCE_OWNER_KEY) >=Int AMOUNT
+        andBool #rangeUInt(256, (#lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY) +Int AMOUNT))
+        andBool BALANCE_NEW_OWNER ==Int (#lookup(ACCT_STORAGE, BALANCE_OWNER_KEY) -Int AMOUNT)
+        andBool BALANCE_NEW_RECEIVER ==Int (#lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY) +Int AMOUNT)
 ```
 
 ```k
