@@ -3,6 +3,7 @@
     "scan:slither": "./slither/run-slither.sh ${PWD}",
     "scan:smt-checker": "./SMTChecker/run-SMTChecker.sh ${PWD}/../",
     "scan:mythril": "./mythril/run-mythril.sh ${PWD}/../",
+    "scan:kevm": "./kevm/run-kevm.sh",
     "scan:generate-report": "cargo run --manifest-path ./report_generator/Cargo.toml -- ",
     "docker:release:analysis-tools": "./docker/releaseDockerAnalysisTools.sh",
     "docker:release:kevm": "./docker/releaseDockerKevm.sh"
