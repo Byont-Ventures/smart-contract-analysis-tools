@@ -39,7 +39,7 @@ SMT is used by almost all verification tools.
 
 #### Example
 
-As a very simple example using an online z3 runner: https://jfmc.github.io/z3-play. This page also describes much more complex features of z3.
+As a very simple example using an online z3 runner: https://microsoft.github.io/z3guide/playground/Freeform%20Editing
 
 Let say that we have integers `a` and `b` with the following:
 
@@ -96,7 +96,7 @@ sat
 )
 ```
 
-If we make the assumption that `a > 100` and `b > 0` however, the requirement is met as can be seen:
+If we make the assumption that `a > 100` and `b > 0` however, the requirement is met as can be seen with the following program. Note that the line `(get-model)` is removed. That is because otherwise it would, besides shownin `unsat`, also show an error about not being able to find a model.
 
 ```z3
 (declare-const a Int)
@@ -107,23 +107,40 @@ If we make the assumption that `a > 100` and `b > 0` however, the requirement is
 (assert (not (> (+ a b) 100)))
 
 (check-sat)
-(get-model)
 ```
 
 Resulting in:
 
 ```
-Error: unsat
-(error "line 9 column 10: model is not available")
+unsat
 ```
 
 ### Symbolic execution
 
-Symbolic execution takes multiple paths in the code. But instead of using concrete values, symbolic values are used. So when an input variable (after some manipulation) would be used in a branch, the program would take both branches. When one of the branches would then throw as error, the tool would determine a concrete value which would cause the taking of this branch.
+Symbolic execution takes multiple paths in the code. But instead of using concrete values, symbolic values are used. So when a variable would be used in a branch to determine which path to take, the symbolic execution would take both branches. When one of the branches would then throw as error, the tool would determine a concrete value which would cause the taking of this branch using a SMT checker.
 
-This [slideset](https://www-verimag.imag.fr/~mounier/Enseignement/Software_Security/ConcolicExecution.pdf#page=32) has an example of sumbolic execution.
-The second speaker of [this talk](https://youtu.be/RunMhlTtdKw?t=2033) explain the basics of how it is done in hevm.
-An overview of symbolic execution in general with an example can be found [here](https://www.youtube.com/watch?v=wOO5jpoFIss).
+#### Example
+
+In the example below this process can be seen in action. The program has multiple possible path starting from the top. the variables `x` and `y` are assigned the symbolic values `X` and `Y` respectively. Each time that the symbolic execution learns something about a variable is will be stored in the Path Condition (`PC`). In case of the first branch. One branch knows that the symbolic values meet `X <= Y` in that branch. While in the other branch the program knows that `X > Y` holds. This is simply based on the condition required for that path.
+
+In between the symbolic values are used for some arithmetic which is again done symbolically. At the end the variable `x` equal to the symbolic value `Y` while variable `y` equals symbolic value `X`
+
+At the end there is one path that has a failing assert. The path condition (`PC`) there is `X > Y && Y > X`. Note the left side of the `&&` is from the first branch while the right side is from the second branch.
+
+To see if this branch can actually be reached is done with an SMT checker. We saw in the example of the SMT checker already how to do simple checks in z3. Running the following code in the [online tool](https://microsoft.github.io/z3guide/playground/Freeform%20Editing) again results in `unsat`. Meaning that the path is not reachable.
+
+```z3
+(declare-const X Int)
+(declare-const Y Int)
+
+(assert (and (> X Y) (> Y X)))
+
+(check-sat)
+```
+
+<img src="https://www.researchgate.net/profile/Jawad-Haj-Yahya/publication/314950910/figure/fig1/AS:701239067176962@1544199830648/Example-of-symbolic-execution-of-a-code.ppm" alt="Symbolic execution example" width="80%"/>
+
+Source: https://www.researchgate.net/publication/314950910_Software_Static_Energy_Modeling_for_Modern_Processors
 
 ### Model checking
 
