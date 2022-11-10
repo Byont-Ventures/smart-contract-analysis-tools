@@ -138,7 +138,7 @@ To see if this branch can actually be reached is done with an SMT checker. We sa
 (check-sat)
 ```
 
-![Symbolic execution example](https://www.researchgate.net/profile/Jawad-Haj-Yahya/publication/314950910/figure/fig1/AS:701239067176962@1544199830648/Example-of-symbolic-execution-of-a-code.ppm)
+<img src="./img/Example-of-symbolic-execution-of-a-code.jpg" alt="Symbolic execution example" width="80%"/>
 
 Source: https://www.researchgate.net/publication/314950910_Software_Static_Energy_Modeling_for_Modern_Processors
 
