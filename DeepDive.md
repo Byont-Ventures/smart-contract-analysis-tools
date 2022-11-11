@@ -95,7 +95,7 @@ sat
 
 However, now we only know that it is possible. We don't know if `a + b` can be less than 100.
 
-#### Checking if the assertion will always hold
+#### Checking if the requirement will always hold
 
 To check if our requirement always holds we will check for the **negation** or our requirement. Meaning that we are checking if the requirement can be violated.
 
