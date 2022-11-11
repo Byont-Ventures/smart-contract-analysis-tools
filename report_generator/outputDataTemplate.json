@@ -56,6 +56,22 @@
             "gas_limit": 1234,
             "gas_price": 1234
           }
+        },
+        {
+          "target_address": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+          "caller_address": "0xaffeaffeaffeaffeaffeaffeaffeaffeaffeaffe",
+          "function": {
+            "signature": "myOtherFunction(uint256)",
+            "arguments": ["0"],
+            "value": "0"
+          },
+          "extra": {
+            "block_number": 1235,
+            "block_timestamp": 1445600354,
+            "block_gas_limit": 123,
+            "gas_limit": 1234,
+            "gas_price": 1234
+          }
         }
       ]
     },
