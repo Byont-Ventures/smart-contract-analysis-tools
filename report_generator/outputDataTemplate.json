@@ -1,0 +1,49 @@
+{
+  "repository_link": "https://github.com/",
+  "commit": "11111111111111111111111111111111111111",
+  "tools_versions": [
+    {
+      "name": "solc",
+      "version": "0.8.17"
+    },
+    {
+      "name": "forge",
+      "version": "0.2.0 (22ad954 2022-10-29T00:08:04.783591747Z)"
+    },
+    {
+      "name": "slither",
+      "version": "0.9.0"
+    }
+  ],
+  "runtime_seconds": 432544,
+  "bytecode": {
+    "size_bytes": 123,
+    "bytecode_string": "06080484938543859403850948390584305843853458043"
+  },
+  "found_swc": [
+    {
+      "id": "SWC-102",
+      "count": 4
+    },
+    {
+      "id": "SWC-113",
+      "count": 1
+    },
+    {
+      "id": "SWC-127",
+      "count": 3
+    }
+  ],
+  "source_mapping": [
+    {
+      "swc": "SWC-102",
+      "source_file": "./src/contractA.sol",
+      "lines": [3, 4, 5, 6, 7, 8, 9, 10, 11]
+    },
+    {
+      "swc": "SWC-102",
+      "source_file": "./src/contractA.sol",
+      "lines": [30, 31, 32, 33, 34, 35]
+    }
+  ]
+}
