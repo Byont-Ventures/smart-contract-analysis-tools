@@ -60,7 +60,7 @@ The following structure will be filled on each run.
 }
 ```
 
-Example content can be found in [outputDataTemplate.json](./outputDataTemplate.json)
+Example content can be found in [output-data-template.json](./output-data-template.json)
 
 Only the necessary data is stored. This way a new report can be generated when we would for example the layout of a report.
 
