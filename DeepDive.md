@@ -126,7 +126,7 @@ sat
 
 This example shows that SMT tools can be used to check if logical requirements can be violated and that they can give a counter-example if it is violated.
 
-For more complex systems you would generally not write these rules in z3 manually, but instead generate them using a higher-level tool.
+For more complex systems you would generally not write these rules in z3 manually, but instead, generate them using a higher-level tool.
 
 ### Example: Symbolic execution
 
@@ -141,20 +141,22 @@ function sumIsEven(uint256 a, uint256 b) returns (bool) {
 }
 ```
 
-- **Concrete execution:** the parameters `a` and `b` would be assigned actual values. The variable `sum` would be a concrete value (the result of `a + b`) and the function would return **either** `true` or `false`.
-- **Symbolic execution:** the execution assigns the parameters `a` the symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `sum` would now be assigned the symbolic value `A + B`. Since `sum % 2 == 0` is an if-statement in disguise, the execution splits into two branches. One where `isEven = true` and one where `isEven = false`. The execution now checks both branches further. A more visual example of this flow can be found below.
+First, let's make the difference between **concrete execution** and **symbolic execution** clear.
 
-So when a variable would be used in a branch to determine which path to take, the symbolic execution would take both branches. When one of the branches would then throw an error, the tool would determine a concrete value which would cause the program to take this branch using an SMT checker.
+- **Concrete execution:** the parameters `a` and `b` would be assigned actual values (like `4` and `13`). The variable `sum` would be a concrete value (the result of `a + b`, for exampl,e `4 + 13 = 17`) and the function would return **either** `true` or `false`.
+- **Symbolic execution:** the execution assigns the parameter `a` the symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `sum` would now be assigned the symbolic value `A + B`. This can't be simplified due to `A` and `B` being symbolic. Since `sum % 2 == 0` is an if-statement in disguise, the execution splits into two branches. One where `isEven = true` and one where `isEven = false`. The execution now checks both branches further. A more visual example of this flow can be found below.
+
+So when a variable would be used in a branch to determine which path to take, the symbolic execution would take both branches. When one of the branches would then throw an error, the tool would determine a concrete value (get a counter-example using an SMT checker) that would cause the program to take this branch.
 
 #### Example
 
-In the example below this process can be seen in action. The program has multiple possible paths starting from the top. the variables `x` and `y` are assigned the symbolic values `X` and `Y` respectively. Each time that the symbolic execution learns something about a variable it will be stored in the Path Condition (`PC`). In the case of the first branch. One branch knows that the symbolic values meet `X <= Y` in that branch. While in the other branch the program knows that `X > Y` holds. This is simply based on the condition required for that path.
+In the example below this process can be seen in action. The program has multiple possible paths starting from the top. the variables `x` and `y` are assigned the symbolic values `X` and `Y` respectively. Each time that the symbolic execution learns something about a variable it will be stored in the Path Condition (`PC`) for that particular path. One branch in the image below knows that the symbolic values meet `X <= Y` in that branch. While in the other branch the program knows that `X > Y` holds. This is simply based on the condition required for that path (the if-statement).
 
-In between the symbolic values are used for some arithmetic which is again done symbolically. In the end, the variable `x` is equal to the symbolic value `Y` while variable `y` equals the symbolic value `X`
+In between the two if-statements, the symbolic values are used for some arithmetic which is again done symbolically. In the end, the variable `x` is equal to the symbolic value `Y` while variable `y` equals the symbolic value `X`
 
-In the end, there is one path that has a failing assert. The path condition (`PC`) there is `X > Y && Y > X`. Note the left side of the `&&` is from the first branch while the right side is from the second branch.
+In the end, there is one path that has a failing assert. The path condition (`PC`) there is `X > Y && Y > X`. Note that the left side of the `&&` is from the first branch while the right side is from the second branch.
 
-To see if this branch can be reached is done with an SMT checker. We saw in the example of the SMT checker already how to do simple checks in z3. Running the following code in the [online tool](https://microsoft.github.io/z3guide/playground/Freeform%20Editing) again results in `unsat`. Meaning that the path is not reachable and thus we know that the loop does what it is expected to do.
+Determining if this branch can be reached is done with an SMT checker. We saw in the example of the SMT checker already how to do simple checks in z3. Running the following code in the [online tool](https://microsoft.github.io/z3guide/playground/Freeform%20Editing) results in `unsat`. Meaning that the path is not reachable and thus we know that the loop does what it is expected to do.
 
 ```z3
 (declare-const X Int)
