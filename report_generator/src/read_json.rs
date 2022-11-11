@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 use std::fs;
+use std::error::Error;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -52,12 +53,12 @@ pub struct Problem {
     pub notes: String,
 }
 
-pub fn read_json(path: &str) -> Data {
-    let file = fs::read_to_string(path)
-        .expect("Unable to read the file");
+// May add a bit more proper error-handling if the library expands
 
-    let data: Data = serde_json::from_str(&file)
-        .expect("JSON-file was not well-formatted");
+pub fn read_json(path: &str) -> Result<Data, Box<dyn Error>> {
+    let file = fs::read_to_string(path)?;
 
-    data
+    let data: Data = serde_json::from_str(&file)?;
+
+    Ok(data)
 }

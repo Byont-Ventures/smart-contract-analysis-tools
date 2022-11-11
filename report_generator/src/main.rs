@@ -185,7 +185,7 @@ fn main() {
     }
 
     // Generate template from input.json
-    generate_reports(read_json("input.json"));
+    generate_reports(read_json("input.json").unwrap()).unwrap();
 }
 
 fn create_file(file_name: &str) -> std::io::Result<File> {

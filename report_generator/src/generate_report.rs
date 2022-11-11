@@ -1,3 +1,4 @@
+use std::error::Error;
 use tera::Tera;
 use tera::Context;
 use std::fs;
@@ -20,19 +21,17 @@ lazy_static! {
         };
     }
 
-pub fn generate_reports(data: Data) {
-    // let names: Vec<_> = TEMPLATES.get_template_names().collect();
-    //
-    // for i in names.iter() {
-    //     println!("{}", i);
-    // }
+// May add a bit more proper error-handling if the library expands
+
+pub fn generate_reports(data: Data) -> Result<(), Box<dyn Error>> {
 
     let mut context = Context::new();
 
     context.insert("data", &data);
 
-    let doc = TEMPLATES.render("full_report_template.md", &context).unwrap();
+    let doc = TEMPLATES.render("full_report_template.md", &context)?;
 
-    fs::write("outputs/full_report.md", doc)
-        .expect("SOMETHING WENT WRONG!");
+    fs::write("outputs/full_report.md", doc)?;
+
+    Ok(())
 }
