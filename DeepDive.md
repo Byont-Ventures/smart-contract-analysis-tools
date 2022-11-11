@@ -33,9 +33,9 @@ There is also the Smart Contract Weakness Classification and Test Cases registry
 
 ### Satisfiable Modulo Theory (SMT)
 
-In short, SMT allows us to define a set of constraints and determine if it can be true or not (satisfiability). The SMT solver which is used in most formal verification tools for the EVM is [z3](https://github.com/Z3Prover/z3). Note that z3 is more than only a SMT solver (see the [manual](https://microsoft.github.io/z3guide/)).
+SMT is the backbone of software analysis. This is due the fact that it can determine if a set on requirements and assertions can have a **satisfiable** assignment. Meaning that it can checks if a certain combination of assignments for variables can lead to the violation of requirements.
 
-SMT is used by almost all verification tools.
+In short, SMT allows us to define a set of constraints and determine if it can be true or not (satisfiability). The SMT solver which is used in most formal verification tools is [z3](https://github.com/Z3Prover/z3).
 
 #### Example
 
@@ -117,7 +117,23 @@ unsat
 
 ### Symbolic execution
 
-Symbolic execution takes multiple paths in the code. But instead of using concrete values, symbolic values are used. So when a variable would be used in a branch to determine which path to take, the symbolic execution would take both branches. When one of the branches would then throw as error, the tool would determine a concrete value which would cause the taking of this branch using a SMT checker.
+Symbolic execution takes multiple paths in the code. But instead of using concrete values, symbolic values are used.
+
+Consider the function `sumIsEven()`.
+
+```Solidity
+function sumIsEven(uint256 a, uint256 b) returns (bool) {
+    uint256 sum = a + b;
+    bool isEven = (sum % 2 == 0);
+
+    return isEven;
+}
+```
+
+- **Concrete execution:** the parameters `a` and `b` would be assigned actual values. The variable `sum` would be a concrete value (the result of `a + b`) and the function would return **either** `true` or `false`.
+- **Symbolic execution:** the execution assigns the parameters `a` an symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `sum` would now be assigned the symbolic value `A + B`. Since `sum % 2 == 0` is an if-statement in disguise, the execution splits into two branches. One where `isEven = true` and one where `isEven = false`. The execution now checks both branches further. A more visual example of this flow can be found below.
+
+So when a variable would be used in a branch to determine which path to take, the symbolic execution would take both branches. When one of the branches would then throw as error, the tool would determine a concrete value which would cause the taking of this branch using a SMT checker.
 
 #### Example
 
@@ -127,7 +143,7 @@ In between the symbolic values are used for some arithmetic which is again done 
 
 At the end there is one path that has a failing assert. The path condition (`PC`) there is `X > Y && Y > X`. Note the left side of the `&&` is from the first branch while the right side is from the second branch.
 
-To see if this branch can actually be reached is done with an SMT checker. We saw in the example of the SMT checker already how to do simple checks in z3. Running the following code in the [online tool](https://microsoft.github.io/z3guide/playground/Freeform%20Editing) again results in `unsat`. Meaning that the path is not reachable.
+To see if this branch can actually be reached is done with an SMT checker. We saw in the example of the SMT checker already how to do simple checks in z3. Running the following code in the [online tool](https://microsoft.github.io/z3guide/playground/Freeform%20Editing) again results in `unsat`. Meaning that the path is not reachable and thus we know that the loop does what it is expected to do.
 
 ```z3
 (declare-const X Int)
@@ -142,37 +158,19 @@ To see if this branch can actually be reached is done with an SMT checker. We sa
 
 Source: https://www.researchgate.net/publication/314950910_Software_Static_Energy_Modeling_for_Modern_Processors
 
-### Model checking
+### Constraint Horn Clauses (CHC)
 
-Model checking works on the state machine of a system.
+A set of CHC described the program with logic. It still uses an SMT checker as the backend.
 
-An example of a symbolic model checker is [NuSMV](https://nusmv.fbk.eu/). In NuSMV a user will define all the possible conditional transitions. Usually this would be generated with a custom script when possible since a complete system can be quite large/complex. Then the user will define the specifications to check for using temporal logic. Whenever NuSMV find a trace (a sequence of transitions) that violates this specification it will print the trace.
-
-The tool [SPACER](https://arieg.bitbucket.io/pdf/synasc2019.pdfß) enables model checking in z3 using horn clauses.
+For more information see https://www.cs.fsu.edu/~grigory/hornspec.pdf with the ralated presentation https://www.youtube.com/watch?v=kbtnye_q3PA.
 
 ### Matching logic
 
-http://www.matching-logic.org/
-https://www.youtube.com/watch?v=Awsv0BlJgbo
+Docs: http://www.matching-logic.org/
 
-Matching logic can define a multitude of other logics.
-
-Matching logic lets someone define a language's semantics as rewrite rules.
-
-In matching logic a 'state' in a program is represented as a configuration. A rewrite rule `lhs => rhs` means that when the `lhs` matches the current configuration, it will be rewritten to the `rhs`.
+Matching logic is used as the backbone of the K-framework on which KEVM is build.
 
 ## Verifying source code vs bytecode
-
-Here only tools uses in the repo are considered.
-
-Works on Solidity code:
-
-- SMTChecker
-
-Working on bytecode:
-
-- hevm
-- kevm
 
 The main benefit of working with bytecode is that you are working with the code which will actually be deployed. You are not dependent of potential error in the compiler.
 
