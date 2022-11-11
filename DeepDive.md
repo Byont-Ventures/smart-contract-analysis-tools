@@ -33,7 +33,7 @@ There is also the Smart Contract Weakness Classification and Test Cases registry
 
 # Analysis techniques
 
-Analyzing software can be done using several techniques. What you will notice, however, when reading more about all these techniques is that there is no clear division between them.
+Analyzing software can be done using several techniques. What you will notice, however, when learning more about all these techniques is that there is not always a clear division between them.
 
 A lot of times multiple techniques are extensions of other techniques. In particular, [Satisfiable Modulo Theory (SMT)](#satisfiable-modulo-theory-smt) is one of the more fundamental techniques used. The main purpose of SMT is to check if the variables in a program can have a certain initial value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
 
@@ -41,11 +41,11 @@ A lot of times multiple techniques are extensions of other techniques. In partic
 
 Another technique is to use [Constraint Horn Clauses (CHC)](#constraint-horn-clauses-chc). This will transfer the source code into logic and checks if certain failing paths can be found. CHC is a layer on top of SMT and is similar to symbolic execution.
 
-What this introduction tries to make clear is that (1) SMT is the backbone is software analysis and (2) One technique doesn't exclude the other.
+What this introduction tries to make clear is that, (1) SMT is the backbone in software analysis, and (2) one technique doesn't exclude the other.
 
 ### Example: Satisfiable Modulo Theory (SMT)
 
-To get a better idea of what an SMT checker does we will go over a simple example. We will use z3 as this is the most used SMT checker for automatic analysis tools for Solidity.
+To get a better idea of what an SMT checker does, we will go over a simple example. We will use [z3](https://github.com/Z3Prover/z3) as this is the most used SMT checker for automatic analysis tools for Solidity.
 
 An online z3 runner can be used if you want to try the examples yourself: https://microsoft.github.io/z3guide/playground/Freeform%20Editing
 
@@ -68,7 +68,9 @@ function specialAdd(int256 a, int256 b) returns (int256 c) {
 
 #### Checking if the requirement can hold
 
-The following check will say that is **satisfiable**. Here we only check that there is **at least one** assignment for `a` and `b` that makes sure that `a + b > 100`.
+We can first check if the requirement (`a + b > 100`) can hold at al. This can be done with the following checks in z3. The syntax used is [SMTLib](https://microsoft.github.io/z3guide/docs/logic/basiccommands).
+
+It is important to note that here we only check that there is **at least one** assignment for `a` and `b` that makes sure that `a + b > 100`.
 
 ```z3
 (declare-const a Int)
@@ -93,11 +95,11 @@ sat
 )
 ```
 
-However, now we only know that it is possible. We don't know if `a + b` can be less than 100.
+However, now we only know that it is possible. We don't know yet if `a + b` is always more than 100.
 
 #### Checking if the requirement will always hold
 
-To check if our requirement always holds we will check for the **negation** or our requirement. Meaning that we are checking if the requirement can be violated.
+To check if our requirement always holds we will check for the **negation** of our requirement. Meaning that we are checking if the requirement can be violated. The only change is that we put `(not ...)` around our requirement.
 
 ```z3
 (declare-const a Int)
@@ -121,6 +123,10 @@ sat
     16)
 )
 ```
+
+This example shows that SMT tools can be used to check if logical requirements can be violated and that they can give a counter-example if it is violated.
+
+For more complex systems you would generally not write these rules in z3 manually, but instead generate them using a higher-level tool.
 
 ### Example: Symbolic execution
 
