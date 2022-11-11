@@ -36,7 +36,25 @@ The following structure will be filled on each run.
       "swc": "",
       "severity": "",
       "source_file": "",
-      "lines_of_interest": []
+      "lines_of_interest": [],
+      "tx_flow": [
+        {
+          "target_address": "",
+          "caller_address": "",
+          "function": {
+            "signature": "",
+            "arguments": [],
+            "value": ""
+          },
+          "extra": {
+            "block_number": 0,
+            "block_timestamp": 0,
+            "block_gas_limit": 0,
+            "gas_limit": 0,
+            "gas_price": 0
+          }
+        }
+      ]
     }
   ]
 }
@@ -44,8 +62,12 @@ The following structure will be filled on each run.
 
 Example content can be found in [outputDataTemplate.json](./outputDataTemplate.json)
 
+Only the necessary data is stored. This way a new report can be generated when we would for example the layout of a report.
+
 ## Template
 
 The template engine takes a template with general text about our approach and defines what the report looks like. Depending on the target audience the report will go more or less in depth.
 
 It will also add a description and possible solution (based on the [official docs](https://swcregistry.io/docs/SWC-129)) to the found problems for each found SWC problems.
+
+One a report is generated, there is an option to add notes manually for more specific information with regard to the context in which the smart contract will run.
