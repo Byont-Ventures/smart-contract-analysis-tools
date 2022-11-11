@@ -42,6 +42,8 @@ The following structure will be filled on each run.
 }
 ```
 
+Example content can be found in [outputDataTemplate.json](./outputDataTemplate.json)
+
 ## Template
 
 The template engine takes a template with general text about our approach and defines what the report looks like. Depending on the target audience the report will go more or less in depth.
