@@ -26,6 +26,7 @@ echo ""                                                                     | te
 
 docker run --pull --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-tools:latest bash -c " \
     cd /prj                                             \
+    && solc-select install ${solcVersion}               \
     && solc-select use ${solcVersion}                   \
     && solc                                             \
     ${remappings}                                       \
