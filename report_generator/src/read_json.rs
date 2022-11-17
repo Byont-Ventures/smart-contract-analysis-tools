@@ -3,6 +3,9 @@ use serde::Serialize;
 use std::fs;
 use std::error::Error;
 
+// Note: this code has been auto-generated on this website: https://transform.tools/json-to-rust-serde
+// Can be useful for future updates and other implementations 
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Data {
