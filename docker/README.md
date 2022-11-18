@@ -9,8 +9,6 @@
 
 ## Build and push images
 
-You might need sudo depending on your system.
-
 To build the dockerfile to use `hevm`, `slither` and the `SMTChecker` run:
 
 ```bash

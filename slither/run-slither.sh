@@ -25,6 +25,7 @@ echo ""                                                                     | te
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-tools:latest /bin/bash -c "                  \
     cd /prj                                                                                                         \
+    && solc-select install ${solcVersion}                                                                           \
     && solc-select use ${solcVersion}                                                                               \
     && rm -f ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json             \
     && slither --json ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json    \
