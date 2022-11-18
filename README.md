@@ -47,9 +47,25 @@ $ yarn --cwd <path to this submodule> run   \
 
 ## KEVM
 
-While most tools don't require any user input other than some flags and the source files, kevm is different. For it to work you have to define for each function the expected state with optional pre- and postconditions. Additionally, sometimes you have to add custom rules for the analysis to work. Due to the manual changes required, the specifications for the contracts should be created outside of the submodule (**or docker image if we want to use that instead**). The path to these specifications should be configured under the `[kevm]` section at `kevm_spec_rel_path` in the `analysis.toml` file.
+While most tools don't require any user input other than some flags and the source files, kevm is different. For it to work you have to define for each function the expected state with optional pre- and postconditions. Additionally, sometimes you have to add custom rules for the analysis to work. Due to the manual changes required, the specifications for the contracts should be created outside of the submodule. The path to these specifications should be configured under the `[kevm]` section at `kevm_spec_rel_path` in the `analysis.toml` (here called [`./analysis-config-example.toml`](./analysis-config-example.toml)) file.
 
-From the root of the project repository that uses this is as a submodule.
+The specification file **MUST** have the name `<contract name>-spec.md`. An example can be found at [...](...).
+
+> TODO: Currently updating `analysis.toml` for kevm doesn't do anything. Instead, run the command below to run kevm.
+
+From the root of the project repository that uses this is as a submodule run the following
+
+```bash
+$ yarn --cwd ./security-scans run                   \
+    scan:kevm                                       \
+    ${PWD}                                          \
+    <Relative path to the this submodule>           \
+    <Relative path to the contract source folder>   \
+    <Relative path to the kevm specs>               \
+    <contract name without .sol>
+```
+
+As an example:
 
 ```bash
 $ yarn --cwd ./security-scans run   \
