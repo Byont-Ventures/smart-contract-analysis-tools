@@ -45,38 +45,6 @@ $ yarn --cwd <path to this submodule> run   \
     <absolute path to config file>
 ```
 
-## KEVM
-
-While most tools don't require any user input other than some flags and the source files, kevm is different. For it to work you have to define for each function the expected state with optional pre- and postconditions. Additionally, sometimes you have to add custom rules for the analysis to work. Due to the manual changes required, the specifications for the contracts should be created outside of the submodule. The path to these specifications should be configured under the `[kevm]` section at `kevm_spec_rel_path` in the `analysis.toml` (here called [`./analysis-config-example.toml`](./analysis-config-example.toml)) file.
-
-The specification file **MUST** have the name `<contract name>-spec.md`. An example can be found at [...](...).
-
-> TODO: Currently updating `analysis.toml` for kevm doesn't do anything. Instead, run the command below to run kevm.
-
-From the root of the project repository that uses this is as a submodule run the following
-
-```bash
-$ yarn --cwd ./security-scans run                   \
-    scan:kevm                                       \
-    ${PWD}                                          \
-    <Relative path to the this submodule>           \
-    <Relative path to the contract source folder>   \
-    <Relative path to the kevm specs>               \
-    <contract name without .sol>
-```
-
-As an example:
-
-```bash
-$ yarn --cwd ./security-scans run   \
-    scan:kevm                       \
-    ${PWD}                          \
-    ./security-scans                \
-    ./src/smart-contracts           \
-    ./kevm-specs                    \
-    VeriToken
-```
-
 # Available tools
 
 **DISCLAIMER**
@@ -121,4 +89,34 @@ The SMTChecker is a tool that combines both a bounded model checker and a constr
 
 KEVM is an implementation of the EVM in the [k-framework](https://github.com/runtimeverification/k). The k-framework is based on [matching logic](http://www.matching-logic.org/).
 
-Using KEVM is different than the other tools due the fact that you have to write the [specification](https://github.com/runtimeverification/evm-semantics/blob/v1.0.1-0e96c8d/tests/specs/examples/erc20-spec.md) for what a function is supposed to to.
+### Usage
+
+While most tools don't require any user input other than some flags and the source files, kevm is different. For it to work you have to define for each function the expected state with optional pre- and postconditions. Additionally, sometimes you have to add custom rules for the analysis to work. Due to the manual changes required, the specifications for the contracts should be created outside of the submodule. The path to these specifications should be configured under the `[kevm]` section at `kevm_spec_rel_path` in the `analysis.toml` (here called [`./analysis-config-example.toml`](./analysis-config-example.toml)) file.
+
+The specification file **MUST** have the name `<contract name>-spec.md`. An example can be found at [VeriToken-spec.md](./kevm-example-spec/VeriToken-spec.md).
+
+> TODO: Currently updating `analysis.toml` for kevm doesn't do anything. Instead, run the command below to run kevm.
+
+From the root of the project repository that uses this as a submodule run the following command
+
+```bash
+$ yarn --cwd ./security-scans run                   \
+    scan:kevm                                       \
+    ${PWD}                                          \
+    <Relative path to the this submodule>           \
+    <Relative path to the contract source folder>   \
+    <Relative path to the kevm specs folder>        \
+    <contract name without .sol>
+```
+
+As an example:
+
+```bash
+$ yarn --cwd ./security-scans run   \
+    scan:kevm                       \
+    ${PWD}                          \
+    ./security-scans                \
+    ./src/smart-contracts           \
+    ./kevm-specs                    \
+    VeriToken
+```

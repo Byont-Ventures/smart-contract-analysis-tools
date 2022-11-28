@@ -6,6 +6,14 @@ pathToSourceFileFromRoot=$3
 pathToKevmSpecFromRoot=$4
 contractName=$5
 
+solcVersion=0.8.13
+# Even though 0.8.17 uses LONDON, there seem to be a problem with
+# evm version >= BERLIN with regard to #accessStorage
+# However, since the schedule seems to only be related to the gas costs (https://github.com/runtimeverification/evm-semantics/blob/v1.0.1-0e96c8d/evm.md#london-schedule),
+# it seem fair enough to use ISTABUL instead.
+# An issue about this is created: https://github.com/runtimeverification/evm-semantics/issues/1469
+evmVersion=ISTANBUL
+
 if [ -z "${contractName}" ]
 then
     echo ""
@@ -45,8 +53,10 @@ echo ""                                                                     | te
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:latest bash -c "                             \
     mkdir -p /prj/${pathToSecurityScansFromRoot}/kevm/generated                                                 \
+    && solc-select install ${solcVersion} && solc-select use ${solcVersion} && solc --version                   \
     && kevm solc-to-k /prj/${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol ${contractName}    \
-    --pyk --verbose --profile --verbose --definition /root/evm-semantics/.build/usr/lib/kevm/haskell             \
+    --schedule ${evmVersion}                                                                                    \
+    --pyk --verbose --profile --verbose --definition /root/evm-semantics/.build/usr/lib/kevm/haskell            \
     --main-module ${contractName}-VERIFICATION                                                                  \
     > /prj/${pathToSecurityScansFromRoot}/kevm/generated/${contractName}-bin-runtime.k" 2>&1 | tee -a ${outputFile}
 
@@ -60,6 +70,7 @@ echo ""                                                                     | te
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:latest bash -c "                     \
     kevm kompile --backend haskell /prj/${pathToKevmSpecFromRoot}/${contractName}-spec.md               \
         --definition /prj/${pathToSecurityScansFromRoot}/kevm/generated/${contractName}-spec/haskell    \
+        --schedule ${evmVersion}                                                                        \
         --main-module VERIFICATION                                                                      \
         --syntax-module VERIFICATION                                                                    \
         --concrete-rules-file /root/evm-semantics/tests/specs/examples/concrete-rules.txt               \
@@ -74,6 +85,7 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:latest bash -c "                     \
-    kevm prove --backend haskell /prj/${pathToKevmSpecFromRoot}/${contractName}-spec.md       \
+    kevm prove --backend haskell /prj/${pathToKevmSpecFromRoot}/${contractName}-spec.md                 \
         --definition /prj/${pathToSecurityScansFromRoot}/kevm/generated/${contractName}-spec/haskell    \
+        --schedule ${evmVersion}                                                                        \
         --verbose" 2>&1 | tee -a ${outputFile}

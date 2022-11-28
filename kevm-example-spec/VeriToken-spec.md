@@ -10,6 +10,8 @@ requires "lemmas/lemmas.k"
 
 ---
 
+This template is based on the example specification from the demo repository [smart-contract-analysis-tools-example](https://github.com/Byont-Ventures/smart-contract-analysis-tools-example).
+
 File [VeriToken.sol](../smart-contracts/src/VeriToken.sol) contains the solidity code being verified.
 
 ## Verification module
@@ -39,28 +41,6 @@ module VERIFICATION
 endmodule
 ```
 
-// equality rules
-// ---------------
-rule { M:Map [ K <- V ] #Equals M [ K <- V' ] }
-=> { V #Equals V' }
-[simplification]
-
-rule chop ( X ) => X
-requires
-#rangeUInt(256, X)
-[simplification]
-
-rule { #lookup ( M, L ) V #Equals chop ( #lookup ( M [ K <- _ ], L ) V ) }
-=> { #lookup ( M, L ) V #Equals #lookup ( M [ K <- _ ], L ) V }
-requires
-#Not ( { K #Equals L } )
-[simplification]
-
-rule #lookup ( M [ K <- _ ], L )
-=> #lookup ( M, L )
-requires #Not ( { K #Equals L } )
-[simplification]
-
 ## K specification
 
 ---
@@ -79,7 +59,7 @@ claim <k> runLemma(#bufStrict(32, #loc(VeriToken._allowances[OWNER]))) => doneLe
 
 ### Calling decimals() works
 
-```
+```k
 claim [decimals]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
@@ -110,7 +90,7 @@ claim [decimals]:
 
 ### Calling totalSupply() works
 
-```
+```k
 claim [totalSupply]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
@@ -145,7 +125,7 @@ claim [totalSupply]:
 
 ### Calling approve(address spender, uint256 amount) works
 
-```
+```k
 claim [approve.success]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
@@ -185,7 +165,7 @@ claim [approve.success]:
         andBool SPENDER =/=Int 0
 ```
 
-```
+```k
 claim [approve.revert]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
@@ -253,7 +233,14 @@ claim [transfer.success]:
 
     <account>
         <acctID> ACCTID </acctID>
-        <storage> ACCT_STORAGE => ACCT_STORAGE [ BALANCE_OWNER_KEY <- BALANCE_NEW_OWNER ] [ BALANCE_RECEIVER_KEY <- BALANCE_NEW_RECEIVER ] </storage>
+        <storage>
+            BALANCE_OWNER_KEY    |-> (BALANCE_INITIAL_OWNER    => BALANCE_NEW_OWNER)
+            BALANCE_RECEIVER_KEY |-> (BALANCE_INITIAL_RECEIVER => BALANCE_NEW_RECEIVER)
+        </storage>
+        <origStorage>
+            BALANCE_OWNER_KEY    |-> BALANCE_INITIAL_OWNER
+            BALANCE_RECEIVER_KEY |-> BALANCE_INITIAL_RECEIVER
+        </origStorage>
         ...
     </account>
 
@@ -265,8 +252,6 @@ claim [transfer.success]:
         andBool OWNER =/=Int 0
         andBool RECEIVER =/=Int 0
         andBool OWNER =/=Int RECEIVER
-        andBool BALANCE_INITIAL_OWNER ==Int #lookup(ACCT_STORAGE, BALANCE_OWNER_KEY)
-        andBool BALANCE_INITIAL_RECEIVER ==Int #lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY)
         andBool #rangeUInt(256, BALANCE_INITIAL_OWNER)
         andBool #rangeUInt(256, BALANCE_INITIAL_RECEIVER)
         andBool AMOUNT >=Int 0
@@ -274,114 +259,6 @@ claim [transfer.success]:
         andBool BALANCE_NEW_OWNER ==Int (BALANCE_INITIAL_OWNER -Int AMOUNT)
         andBool BALANCE_NEW_RECEIVER ==Int (BALANCE_INITIAL_RECEIVER +Int AMOUNT)
         andBool #rangeUInt(256, BALANCE_NEW_OWNER)
-        andBool #rangeUInt(256, BALANCE_NEW_RECEIVER)
-```
-
-ensures
-BALANCE_OWNER_KEY ==Int #loc(VeriToken.\_balances[OWNER])
-andBool BALANCE_RECEIVER_KEY ==Int #loc(VeriToken.\_balances[RECEIVER])
-andBool BALANCE_INITIAL_OWNER ==Int #lookup(ACCT_STORAGE, BALANCE_OWNER_KEY)
-andBool BALANCE_INITIAL_RECEIVER ==Int #lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY)
-andBool (BALANCE_INITIAL_OWNER -Int AMOUNT) ==Int #lookup(ACCT_STORAGE_NEW, BALANCE_OWNER_KEY)
-andBool (BALANCE_INITIAL_RECEIVER +Int AMOUNT) ==Int #lookup(ACCT_STORAGE_NEW, BALANCE_RECEIVER_KEY)
-
-    ensures
-        BALANCE_OWNER_KEY ==Int #loc(VeriToken._balances[OWNER])
-        andBool BALANCE_RECEIVER_KEY ==Int #loc(VeriToken._balances[RECEIVER])
-        andBool ?BALANCE_NEW_OWNER ==Int (#lookup(ACCT_STORAGE, BALANCE_OWNER_KEY) -Int AMOUNT)
-        andBool #rangeUInt(256, ?BALANCE_NEW_OWNER)
-        andBool ?BALANCE_NEW_RECEIVER ==Int (#lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY) +Int AMOUNT)
-        andBool #rangeUInt(256, ?BALANCE_NEW_RECEIVER)
-
-```
-claim [transfer.sends]:
-    <mode>     NORMAL   </mode>
-    <schedule> ISTANBUL </schedule>
-
-    <callStack> .List                                          </callStack>
-    <program>   #binRuntime(VeriToken)                         </program>
-    <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
-    <static>    false                                          </static>
-
-    <id>         ACCTID      => ?_ </id>
-    <caller>     OWNER       => ?_ </caller>
-    <localMem>   .Memory     => ?_ </localMem>
-    <memoryUsed> 0           => ?_ </memoryUsed>
-    <wordStack>  .WordStack  => ?_ </wordStack>
-    <pc>         0           => ?_ </pc>
-    <endPC>      _           => ?_ </endPC>
-    <gas>        #gas(_VGAS) => ?_ </gas>
-    <callValue>  0           => ?_ </callValue>
-    <substate>   _           => ?_ </substate>
-
-    <callData>   VeriToken.transfer(RECEIVER, AMOUNT)       </callData>
-    <k>          #execute   => #halt ...                    </k>
-    <output>     .ByteArray => #buf(32, bool2Word(true))    </output>
-    <statusCode> _          => EVMC_SUCCESS                 </statusCode>
-
-    <account>
-        <acctID> ACCTID </acctID>
-        <storage> ACCT_STORAGE => ACCT_STORAGE [ BALANCE_OWNER_KEY <- BALANCE_NEW_OWNER ] </storage>
-        ...
-    </account>
-
-    requires
-        BALANCE_OWNER_KEY ==Int #loc(VeriToken._balances[OWNER])
-        andBool #rangeAddress(OWNER)
-        andBool #rangeAddress(RECEIVER)
-        andBool OWNER =/=Int 0
-        andBool RECEIVER =/=Int 0
-        andBool OWNER =/=Int RECEIVER
-        andBool BALANCE_INITIAL_OWNER ==Int #lookup(ACCT_STORAGE, BALANCE_OWNER_KEY)
-        andBool #rangeUInt(256, BALANCE_INITIAL_OWNER)
-        andBool AMOUNT >=Int 0
-        andBool AMOUNT <=Int BALANCE_INITIAL_OWNER
-        andBool BALANCE_NEW_OWNER ==Int (BALANCE_INITIAL_OWNER -Int AMOUNT)
-        andBool #rangeUInt(256, BALANCE_NEW_OWNER)
-```
-
-```
-claim [transfer.receives]:
-    <mode>     NORMAL   </mode>
-    <schedule> ISTANBUL </schedule>
-
-    <callStack> .List                                          </callStack>
-    <program>   #binRuntime(VeriToken)                         </program>
-    <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
-    <static>    false                                          </static>
-
-    <id>         ACCTID      => ?_ </id>
-    <caller>     OWNER       => ?_ </caller>
-    <localMem>   .Memory     => ?_ </localMem>
-    <memoryUsed> 0           => ?_ </memoryUsed>
-    <wordStack>  .WordStack  => ?_ </wordStack>
-    <pc>         0           => ?_ </pc>
-    <endPC>      _           => ?_ </endPC>
-    <gas>        #gas(_VGAS) => ?_ </gas>
-    <callValue>  0           => ?_ </callValue>
-    <substate>   _           => ?_ </substate>
-
-    <callData>   VeriToken.transfer(RECEIVER, AMOUNT)       </callData>
-    <k>          #execute   => #halt ...                    </k>
-    <output>     .ByteArray => #buf(32, bool2Word(true))    </output>
-    <statusCode> _          => EVMC_SUCCESS                 </statusCode>
-
-    <account>
-        <acctID> ACCTID </acctID>
-        <storage> ACCT_STORAGE => ACCT_STORAGE [ BALANCE_RECEIVER_KEY <- BALANCE_NEW_RECEIVER ] </storage>
-        ...
-    </account>
-
-    requires
-        BALANCE_RECEIVER_KEY ==Int #loc(VeriToken._balances[RECEIVER])
-        andBool #rangeAddress(OWNER)
-        andBool #rangeAddress(RECEIVER)
-        andBool OWNER =/=Int 0
-        andBool RECEIVER =/=Int 0
-        andBool OWNER =/=Int RECEIVER
-        andBool BALANCE_INITIAL_RECEIVER ==Int #lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY)
-        andBool #rangeUInt(256, BALANCE_INITIAL_RECEIVER)
-        andBool BALANCE_NEW_RECEIVER ==Int (BALANCE_INITIAL_RECEIVER +Int AMOUNT)
         andBool #rangeUInt(256, BALANCE_NEW_RECEIVER)
 ```
 
