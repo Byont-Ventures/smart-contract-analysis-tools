@@ -30,3 +30,7 @@ enabled = true
 
 [smtchecker]
 enabled = false
+
+[kevm]
+enabled = false
+kevm_spec_rel_path = "./kevm-specs"

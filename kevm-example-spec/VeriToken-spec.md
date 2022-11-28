@@ -7,14 +7,19 @@ requires "lemmas/lemmas.k"
 ```
 
 ## Generating and running the specifications
+
 ---
+
+This template is based on the example specification from the demo repository [smart-contract-analysis-tools-example](https://github.com/Byont-Ventures/smart-contract-analysis-tools-example).
+
 File [VeriToken.sol](../smart-contracts/src/VeriToken.sol) contains the solidity code being verified.
 
 ## Verification module
+
 ---
 
 ```k
-requires "generated/VeriToken-bin-runtime.k"
+requires "../security-scans/kevm/generated/VeriToken-bin-runtime.k"
 
 module VERIFICATION
     imports EDSL
@@ -37,6 +42,7 @@ endmodule
 ```
 
 ## K specification
+
 ---
 
 ```k
@@ -53,12 +59,12 @@ claim <k> runLemma(#bufStrict(32, #loc(VeriToken._allowances[OWNER]))) => doneLe
 
 ### Calling decimals() works
 
-```
+```k
 claim [decimals]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
 
-    <callStack> .List                                      </callStack>
+    <callStack> .List                                          </callStack>
     <program>   #binRuntime(VeriToken)                         </program>
     <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
 
@@ -71,10 +77,10 @@ claim [decimals]:
     <gas>        #gas(_VGAS) => ?_ </gas>
     <callValue>  0           => ?_ </callValue>
 
-    <callData>   VeriToken.decimals()             </callData>
-    <k>          #execute   => #halt ...          </k>
-    <output>     .ByteArray => #buf(32, 6)        </output>
-    <statusCode> _          => EVMC_SUCCESS       </statusCode>
+    <callData>   VeriToken.decimals()       </callData>
+    <k>          #execute   => #halt ...    </k>
+    <output>     .ByteArray => #buf(32, 6)  </output>
+    <statusCode> _          => EVMC_SUCCESS </statusCode>
 
     <account>
         <acctID> ACCTID </acctID>
@@ -84,12 +90,12 @@ claim [decimals]:
 
 ### Calling totalSupply() works
 
-```
+```k
 claim [totalSupply]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
 
-    <callStack> .List                                      </callStack>
+    <callStack> .List                                          </callStack>
     <program>   #binRuntime(VeriToken)                         </program>
     <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
 
@@ -102,7 +108,7 @@ claim [totalSupply]:
     <gas>        #gas(_VGAS) => ?_ </gas>
     <callValue>  0           => ?_ </callValue>
 
-    <callData>   VeriToken.totalSupply()                 </callData>
+    <callData>   VeriToken.totalSupply()             </callData>
     <k>          #execute   => #halt ...             </k>
     <output>     .ByteArray => #buf(32, TOTALSUPPLY) </output>
     <statusCode> _          => EVMC_SUCCESS          </statusCode>
@@ -114,20 +120,20 @@ claim [totalSupply]:
      </account>
 
     requires TOTALSUPPLY_KEY ==Int #loc(VeriToken._totalSupply)
-        andBool TOTALSUPPLY     ==Int #lookup(ACCT_STORAGE,  TOTALSUPPLY_KEY)
+        andBool TOTALSUPPLY  ==Int #lookup(ACCT_STORAGE, TOTALSUPPLY_KEY)
 ```
 
-###  Calling approve(address spender,  uint256 amount) works
+### Calling approve(address spender, uint256 amount) works
 
-```
+```k
 claim [approve.success]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
 
-    <callStack> .List                                      </callStack>
+    <callStack> .List                                          </callStack>
     <program>   #binRuntime(VeriToken)                         </program>
     <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
-    <static>    false                                      </static>
+    <static>    false                                          </static>
 
     <id>         ACCTID      => ?_ </id>
     <caller>     OWNER       => ?_ </caller>
@@ -141,9 +147,9 @@ claim [approve.success]:
     <substate> _             => ?_ </substate>
 
     <callData>   VeriToken.approve(SPENDER, AMOUNT) </callData>
-    <k>          #execute   => #halt ...        </k>
-    <output>     .ByteArray => #buf(32, 1)      </output>
-    <statusCode> _          => EVMC_SUCCESS     </statusCode>
+    <k>          #execute   => #halt ...            </k>
+    <output>     .ByteArray => #buf(32, 1)          </output>
+    <statusCode> _          => EVMC_SUCCESS         </statusCode>
 
     <account>
         <acctID> ACCTID </acctID>
@@ -159,7 +165,7 @@ claim [approve.success]:
         andBool SPENDER =/=Int 0
 ```
 
-```
+```k
 claim [approve.revert]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
@@ -181,9 +187,9 @@ claim [approve.revert]:
     <substate> _             => ?_ </substate>
 
     <callData>   VeriToken.approve(SPENDER, AMOUNT) </callData>
-    <k>          #execute   => #halt ...        </k>
-    <output>     _          => ?_               </output>
-    <statusCode> _          => EVMC_REVERT      </statusCode>
+    <k>          #execute   => #halt ...            </k>
+    <output>     _          => ?_                   </output>
+    <statusCode> _          => EVMC_REVERT          </statusCode>
 
     <acctID> ACCTID </acctID>
         <account>
@@ -204,9 +210,10 @@ claim [transfer.success]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
 
-    <callStack> .List                                      </callStack>
+    <callStack> .List                                          </callStack>
     <program>   #binRuntime(VeriToken)                         </program>
     <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
+    <static>    false                                          </static>
 
     <id>         ACCTID      => ?_ </id>
     <caller>     OWNER       => ?_ </caller>
@@ -217,29 +224,42 @@ claim [transfer.success]:
     <endPC>      _           => ?_ </endPC>
     <gas>        #gas(_VGAS) => ?_ </gas>
     <callValue>  0           => ?_ </callValue>
+    <substate>   _           => ?_ </substate>
 
-    <callData>   VeriToken.transfer(RECEIVER, AMOUNT)       </callData>
-    <k>          #execute   => #halt ...                    </k>
-    <output>     .ByteArray => #buf(32, bool2Word(true))    </output>
-    <statusCode> _          => EVMC_SUCCESS                 </statusCode>
+    <callData>   VeriToken.transfer(RECEIVER, AMOUNT)    </callData>
+    <k>          #execute   => #halt ...                 </k>
+    <output>     .ByteArray => #buf(32, bool2Word(true)) </output>
+    <statusCode> _          => EVMC_SUCCESS              </statusCode>
 
     <account>
         <acctID> ACCTID </acctID>
-        <storage> ACCT_STORAGE => ACCT_STORAGE [ BALANCE_OWNER_KEY <- BALANCE_NEW_OWNER ] [ BALANCE_RECEIVER_KEY <- BALANCE_NEW_RECEIVER ] </storage>
+        <storage>
+            BALANCE_OWNER_KEY    |-> (BALANCE_INITIAL_OWNER    => BALANCE_NEW_OWNER)
+            BALANCE_RECEIVER_KEY |-> (BALANCE_INITIAL_RECEIVER => BALANCE_NEW_RECEIVER)
+        </storage>
+        <origStorage>
+            BALANCE_OWNER_KEY    |-> BALANCE_INITIAL_OWNER
+            BALANCE_RECEIVER_KEY |-> BALANCE_INITIAL_RECEIVER
+        </origStorage>
         ...
-     </account>
+    </account>
 
-    requires BALANCE_OWNER_KEY ==Int #loc(VeriToken._balances[OWNER])
+    requires
+        BALANCE_OWNER_KEY ==Int #loc(VeriToken._balances[OWNER])
         andBool BALANCE_RECEIVER_KEY ==Int #loc(VeriToken._balances[RECEIVER])
-        andBool #rangeUInt(256, AMOUNT)
         andBool #rangeAddress(OWNER)
         andBool #rangeAddress(RECEIVER)
         andBool OWNER =/=Int 0
         andBool RECEIVER =/=Int 0
-        andBool #lookup(ACCT_STORAGE, BALANCE_OWNER_KEY) >=Int AMOUNT
-        andBool #rangeUInt(256, (#lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY) +Int AMOUNT))
-        andBool BALANCE_NEW_OWNER ==Int (#lookup(ACCT_STORAGE, BALANCE_OWNER_KEY) -Int AMOUNT)
-        andBool BALANCE_NEW_RECEIVER ==Int (#lookup(ACCT_STORAGE, BALANCE_RECEIVER_KEY) +Int AMOUNT)
+        andBool OWNER =/=Int RECEIVER
+        andBool #rangeUInt(256, BALANCE_INITIAL_OWNER)
+        andBool #rangeUInt(256, BALANCE_INITIAL_RECEIVER)
+        andBool AMOUNT >=Int 0
+        andBool AMOUNT <=Int BALANCE_INITIAL_OWNER
+        andBool BALANCE_NEW_OWNER ==Int (BALANCE_INITIAL_OWNER -Int AMOUNT)
+        andBool BALANCE_NEW_RECEIVER ==Int (BALANCE_INITIAL_RECEIVER +Int AMOUNT)
+        andBool #rangeUInt(256, BALANCE_NEW_OWNER)
+        andBool #rangeUInt(256, BALANCE_NEW_RECEIVER)
 ```
 
 ```k
