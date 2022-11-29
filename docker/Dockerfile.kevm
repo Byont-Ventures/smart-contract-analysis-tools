@@ -137,40 +137,33 @@ ENV PATH=/root/evm-semantics/.build/usr/bin:$PATH
 ENV PATH=/root/evm-semantics/.build/usr/lib/kevm/kframework/bin:$PATH
 
 # https://github.com/runtimeverification/evm-semantics/issues/1022
-RUN if [ "$(uname -m)" = "aarch64" ]; then  \
+RUN if [ "$(uname -m)" = "aarch64" ]; then                              \
         DEBIAN_FRONTEND=noninteractive apt-get install -y libnuma-dev   \
-        && LANG=C.UTF-8 make -j8 deps RELEASE=true APPLE_SILICON=true;  \
+        && LANG=C.UTF-8 make deps RELEASE=true APPLE_SILICON=true;      \
+    else                                                                \
+        make deps RELEASE=true;                                         \
     fi
 
 # https://github.com/runtimeverification/evm-semantics#macos
 RUN if [ "$(uname -m)" = "aarch64" ]; then  \
-        LANG=C.UTF-8 make -j8 libsecp256k1;              \
+        LANG=C.UTF-8 make libsecp256k1;     \
     fi
-
-# RUN if [ "$(uname -m)" = "aarch64" ]; then  \
-#         mkdir -p deps/plugin/deps/libff/build \
-#         && cd deps/plugin/deps/libff/build   \
-#         && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../../../../../.build/local -DWITH_PROCPS=OFF \
-#         && make -s -j1                      \
-#         && make install                     \
-#         && cd ../../../../../;              \
-#     fi
-
-
-# RUN if [ "$(uname -m)" = "aarch64" ]; then      \
-#         apt install -y libnuma-dev              \
-#         && export LANG=C.UTF-8                  \
-#         && make -j8 k-deps APPLE_SILICON=true;  \
-#     else                                        \
-#         make -j8 k-deps;                        \
-#     fi
 
 
 # Blockchain Plugin
-RUN LANG=C.UTF-8 make -j8 plugin-deps RELEASE=true APPLE_SILICON=true
+RUN if [ "$(uname -m)" = "aarch64" ]; then                              \
+        LANG=C.UTF-8 make plugin-deps RELEASE=true APPLE_SILICON=true;  \
+    else                                                                \
+        make plugin-deps RELEASE=true;                                  \
+    fi
+
 
 # Building
-RUN LANG=C.UTF-8 make -j8 build RELEASE=true APPLE_SILICON=true
+RUN if [ "$(uname -m)" = "aarch64" ]; then                          \
+        LANG=C.UTF-8 make build RELEASE=true APPLE_SILICON=true;    \
+    else                                                            \
+        make build RELEASE=true;                                    \
+    fi
 
 ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
 
