@@ -127,38 +127,59 @@ ENV PYTHONPATH=/root/evm-semantics/kevm-pyk/src:$PYTHONPATH
 #   lines 227 and 228
 # For arm64 some extra things needed to be set for building the k-framework. See:
 #   https://stackoverflow.com/questions/63746826/what-might-cause-commitandreleasebuffer-invalid-argument-invalid-character
-RUN git submodule update --init --recursive -- deps/k
+RUN git submodule update --init --recursive
 RUN sed -i '227s/^/\/\/ /' deps/k/kernel/src/main/java/org/kframework/parser/ParserUtils.java \
     && sed -i '228s/^/\/\/ /' deps/k/kernel/src/main/java/org/kframework/parser/ParserUtils.java
-RUN if [ "$(uname -m)" = "aarch64" ]; then      \
-        apt install -y libnuma-dev              \
-        && export LANG=C.UTF-8                  \
-        && make -j8 k-deps APPLE_SILICON=true;  \
-    else                                        \
-        make -j8 k-deps;                        \
-    fi
 
+RUN mkdir -p .build/usr/bin \
+    && mkdir -p .build/usr/lib/kevm
 ENV PATH=/root/evm-semantics/.build/usr/bin:$PATH
 ENV PATH=/root/evm-semantics/.build/usr/lib/kevm/kframework/bin:$PATH
 
-# Blockchain Plugin
-RUN git submodule update --init --recursive -- deps/plugin \
-    && make -j8 plugin-deps
+# https://github.com/runtimeverification/evm-semantics/issues/1022
+RUN if [ "$(uname -m)" = "aarch64" ]; then  \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y libnuma-dev   \
+        && LANG=C.UTF-8 make -j8 deps RELEASE=true APPLE_SILICON=true;  \
+    fi
 
-# # https://github.com/runtimeverification/evm-semantics#macos
+# https://github.com/runtimeverification/evm-semantics#macos
+RUN if [ "$(uname -m)" = "aarch64" ]; then  \
+        LANG=C.UTF-8 make -j8 libsecp256k1;              \
+    fi
+
 # RUN if [ "$(uname -m)" = "aarch64" ]; then  \
-#         make -j8 libsecp256k1;               \
+#         mkdir -p deps/plugin/deps/libff/build \
+#         && cd deps/plugin/deps/libff/build   \
+#         && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../../../../../.build/local -DWITH_PROCPS=OFF \
+#         && make -s -j1                      \
+#         && make install                     \
+#         && cd ../../../../../;              \
 #     fi
 
+
+# RUN if [ "$(uname -m)" = "aarch64" ]; then      \
+#         apt install -y libnuma-dev              \
+#         && export LANG=C.UTF-8                  \
+#         && make -j8 k-deps APPLE_SILICON=true;  \
+#     else                                        \
+#         make -j8 k-deps;                        \
+#     fi
+
+
+# Blockchain Plugin
+RUN LANG=C.UTF-8 make -j8 plugin-deps RELEASE=true APPLE_SILICON=true
+
 # Building
-RUN make -j8 build
+RUN LANG=C.UTF-8 make -j8 build RELEASE=true APPLE_SILICON=true
+
+ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
 
 WORKDIR /
 
 # Install solc
 RUN pip3 install solc-select
-RUN solc-select install 0.8.13 \
-    && solc-select use 0.8.13
+RUN solc-select install 0.8.17 \
+    && solc-select use 0.8.17
 
 RUN apt autoremove --purge \
     && apt autoclean \
