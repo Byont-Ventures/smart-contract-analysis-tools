@@ -8,6 +8,7 @@ echo ""
 
 builderContainerName=kevmBuildxBuilder
 
+# Suppress the output string
 docker buildx use ${builderContainerName} >/dev/null 2>&1
 
 # $? Gets the return status of the previous command 
