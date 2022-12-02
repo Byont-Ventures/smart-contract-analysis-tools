@@ -25,4 +25,4 @@ echo "================================================================="
 echo ""
 
 dockerEnv=$(dirname "$0")
-docker buildx build --push --platform=linux/amd64,linux/arm64 --pull -t ghcr.io/byont-ventures/kevm:kevm-0e96c8d -f ${dockerEnv}/Dockerfile.kevm ${dockerEnv}
+docker buildx build --push --platform=linux/arm64 --pull -t ghcr.io/byont-ventures/kevm:kevm-0e96c8d -f ${dockerEnv}/Dockerfile.kevm ${dockerEnv}
