@@ -142,30 +142,30 @@ ENV PATH=/root/evm-semantics/.build/usr/lib/kevm/kframework/bin:$PATH
 # https://github.com/runtimeverification/evm-semantics/issues/1022
 RUN if [ "$(uname -m)" = "aarch64" ]; then                              \
         DEBIAN_FRONTEND=noninteractive apt install -y libnuma-dev   \
-        && LANG=C.UTF-8 make deps RELEASE=true APPLE_SILICON=true;      \
+        && LANG=C.UTF-8 make -j4 deps RELEASE=true APPLE_SILICON=true;      \
     else                                                                \
-        make deps RELEASE=true;                                         \
+        make -j4  deps RELEASE=true;                                         \
     fi
 
 # https://github.com/runtimeverification/evm-semantics#macos
 RUN if [ "$(uname -m)" = "aarch64" ]; then  \
-        LANG=C.UTF-8 make libsecp256k1;     \
+        LANG=C.UTF-8 make -j4 libsecp256k1;     \
     fi
 
 
 # Blockchain Plugin
 RUN if [ "$(uname -m)" = "aarch64" ]; then                              \
-        LANG=C.UTF-8 make plugin-deps RELEASE=true APPLE_SILICON=true;  \
+        LANG=C.UTF-8 make -j4 plugin-deps RELEASE=true APPLE_SILICON=true;  \
     else                                                                \
-        make plugin-deps RELEASE=true;                                  \
+        make -j4 plugin-deps RELEASE=true;                                  \
     fi
 
 
 # Building
 RUN if [ "$(uname -m)" = "aarch64" ]; then                          \
-        LANG=C.UTF-8 make build RELEASE=true APPLE_SILICON=true;    \
+        LANG=C.UTF-8 make -j4 build RELEASE=true APPLE_SILICON=true;    \
     else                                                            \
-        make build RELEASE=true;                                    \
+        make -j4 build RELEASE=true;                                    \
     fi
 
 ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
@@ -174,9 +174,11 @@ WORKDIR /
 
 # Install solc
 # https://github.com/crytic/solc-select/issues/132
-RUN DEBIAN_FRONTEND=noninteractive apt install -y npm
-RUN npm install -g solc@0.8.17
-RUN ln -s /usr/local/bin/solcjs /usr/local/bin/solc
+# https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && source "$HOME/.cargo/env"
+RUN cargo install svm-rs
+RUN svm install 0.8.17
 
 RUN apt autoremove --purge \
     && apt autoclean \

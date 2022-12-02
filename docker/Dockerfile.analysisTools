@@ -26,26 +26,41 @@ RUN export DEBIAN_FRONTEND=noninteractive      \
     
 # Install z3
 ARG Z3_VERSION=4.11.2
-RUN wget https://github.com/Z3Prover/z3/releases/download/z3-${Z3_VERSION}/z3-${Z3_VERSION}-x64-glibc-2.31.zip \
-    && unzip z3-${Z3_VERSION}-x64-glibc-2.31.zip \
-    && rm z3-${Z3_VERSION}-x64-glibc-2.31.zip
+RUN git clone https://github.com/Z3Prover/z3.git \
+	&& cd z3 \
+	&& git checkout z3-${Z3_VERSION} \
+	&& python3 scripts/mk_make.py \
+	&& cd build \
+	&& make -j8 \
+	&& make -j8 install \
+	&& cd ../.. \
+    && rm -rf z3
+# RUN wget https://github.com/Z3Prover/z3/releases/download/z3-${Z3_VERSION}/z3-${Z3_VERSION}-x64-glibc-2.31.zip \
+#     && unzip z3-${Z3_VERSION}-x64-glibc-2.31.zip \
+#     && rm z3-${Z3_VERSION}-x64-glibc-2.31.zip
 
-RUN export Z3_VERSION_MAIN=$(echo ${Z3_VERSION} | cut -d'.' -f1)            \
-    && export Z3_VERSION_MIDDLE=$(echo ${Z3_VERSION} | cut -d'.' -f2)       \
-    && cd z3-${Z3_VERSION}-x64-glibc-2.31/bin                               \
-    && mv libz3.so /lib/libz3.so.${Z3_VERSION_MAIN}.${Z3_VERSION_MIDDLE}
+# Needed for solc SMTChecker to find it
+# RUN export Z3_VERSION_MAIN=$(echo ${Z3_VERSION} | cut -d'.' -f1)            \
+#     && export Z3_VERSION_MIDDLE=$(echo ${Z3_VERSION} | cut -d'.' -f2)       \
+#     && cd z3-${Z3_VERSION}-x64-glibc-2.31/bin                               \
+#     && mv libz3.so /lib/libz3.so.${Z3_VERSION_MAIN}.${Z3_VERSION_MIDDLE}
     
-RUN rm -r z3-${Z3_VERSION}-x64-glibc-2.31
+# RUN rm -r z3-${Z3_VERSION}-x64-glibc-2.31
 
 # Install solc
 ARG SOLC_VERSION=0.8.17
-RUN pip3 install solc-select
-RUN solc-select install ${SOLC_VERSION} \
-    && solc-select use ${SOLC_VERSION}
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && source "$HOME/.cargo/env"
+RUN cargo install svm-rs
+RUN svm install ${SOLC_VERSION}
 
 # Install hevm
 RUN wget https://github.com/dapphub/dapptools/releases/download/seth%2F0.11.0/hevm -P /usr/bin
 RUN chmod a+x /usr/bin/hevm
+
+# Install Mythril
+RUN pip3 install maturin \
+    && pip3 install mythril
 
 # Install Slither
 ARG SLITHER_VERSION=0.9.0
