@@ -173,9 +173,10 @@ ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
 WORKDIR /
 
 # Install solc
-RUN pip3 install solc-select
-RUN solc-select install 0.8.17 \
-    && solc-select use 0.8.17
+# https://github.com/crytic/solc-select/issues/132
+RUN DEBIAN_FRONTEND=noninteractive apt install -y npm
+RUN npm install -g solc@0.8.17
+RUN ln -s /usr/local/bin/solcjs /usr/local/bin/solc
 
 RUN apt autoremove --purge \
     && apt autoclean \
