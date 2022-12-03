@@ -100,6 +100,14 @@ RUN git clone https://github.com/Z3Prover/z3.git \
 RUN curl -sSL https://get.haskellstack.org/ | sh
 ENV PATH=$HOME/.local/bin:$PATH
 
+# Install solc
+# https://github.com/crytic/solc-select/issues/132
+# https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH=$HOME/.cargo/bin:$PATH
+RUN $HOME/.cargo/bin/cargo install svm-rs
+RUN $HOME/.cargo/bin/svm install 0.8.17
+
 # Get the evm-semantics repo
 RUN git clone https://github.com/runtimeverification/evm-semantics.git /root/evm-semantics \
 	&& cd /root/evm-semantics \
@@ -142,43 +150,35 @@ ENV PATH=/root/evm-semantics/.build/usr/lib/kevm/kframework/bin:$PATH
 # https://github.com/runtimeverification/evm-semantics/issues/1022
 RUN if [ "$(uname -m)" = "aarch64" ]; then                              \
         DEBIAN_FRONTEND=noninteractive apt install -y libnuma-dev   \
-        && LANG=C.UTF-8 make -j4 deps RELEASE=true APPLE_SILICON=true;      \
+        && LANG=C.UTF-8 make deps RELEASE=true APPLE_SILICON=true;      \
     else                                                                \
-        make -j4  deps RELEASE=true;                                         \
+        make deps RELEASE=true;                                         \
     fi
 
 # https://github.com/runtimeverification/evm-semantics#macos
 RUN if [ "$(uname -m)" = "aarch64" ]; then  \
-        LANG=C.UTF-8 make -j4 libsecp256k1;     \
+        LANG=C.UTF-8 make libsecp256k1;     \
     fi
 
 
 # Blockchain Plugin
 RUN if [ "$(uname -m)" = "aarch64" ]; then                              \
-        LANG=C.UTF-8 make -j4 plugin-deps RELEASE=true APPLE_SILICON=true;  \
+        LANG=C.UTF-8 make plugin-deps RELEASE=true APPLE_SILICON=true;  \
     else                                                                \
-        make -j4 plugin-deps RELEASE=true;                                  \
+        make plugin-deps RELEASE=true;                                  \
     fi
 
 
 # Building
 RUN if [ "$(uname -m)" = "aarch64" ]; then                          \
-        LANG=C.UTF-8 make -j4 build RELEASE=true APPLE_SILICON=true;    \
+        LANG=C.UTF-8 make build RELEASE=true APPLE_SILICON=true;    \
     else                                                            \
-        make -j4 build RELEASE=true;                                    \
+        make build RELEASE=true;                                    \
     fi
 
 ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
 
 WORKDIR /
-
-# Install solc
-# https://github.com/crytic/solc-select/issues/132
-# https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    && source "$HOME/.cargo/env"
-RUN cargo install svm-rs
-RUN svm install 0.8.17
 
 RUN apt autoremove --purge \
     && apt autoclean \
