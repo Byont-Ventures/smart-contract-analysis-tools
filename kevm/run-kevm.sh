@@ -42,7 +42,7 @@ echo ""                                                                     | te
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:AnalysisToolbox bash -c "    \
     cd /prj/                                                                                    \
-    && forge flatten ${pathToSourceFileFromRoot}/${contractName}.sol                            \
+    && forge flatten ${pathToSourceFileFromRoot}/${contractName}.sol                            git submodule update --init --recursive\
     --output ${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol" 2>&1 | tee -a ${outputFile}
 
 echo ""                                                                     | tee -a ${outputFile}
@@ -53,7 +53,7 @@ echo ""                                                                     | te
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:AnalysisToolbox bash -c "                    \
     mkdir -p /prj/${pathToSecurityScansFromRoot}/kevm/generated                                                 \
-    && solc-select install ${solcVersion} && solc-select use ${solcVersion} && solc --version                   \
+    && svm install ${solcVersion} && svm use ${solcVersion}                                                     \
     && kevm solc-to-k /prj/${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol ${contractName}    \
     --schedule ${evmVersion}                                                                                    \
     --pyk --verbose --profile --verbose --definition /root/evm-semantics/.build/usr/lib/kevm/haskell            \
