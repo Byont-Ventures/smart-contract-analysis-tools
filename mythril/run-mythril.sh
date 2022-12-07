@@ -26,7 +26,7 @@ echo ""                                                                     | te
 
 docker pull ghcr.io/byont-ventures/analysis-toolbox:latest
 
-echo ""                                                                     | tee ${outputFile}
+echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo "Generate bin-runtime: solc ${solcVersion}"                            | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
