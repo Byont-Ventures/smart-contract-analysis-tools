@@ -35,7 +35,7 @@ echo ""                                                                     | te
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c " \
     cd /prj                                                                                     \
     && svm install ${solcVersion} && svm use ${solcVersion}                                     \
-    && solc                                                                                     \
+    && yes "" | solc                                                                            \
     ${remappings}                                                                               \
     --model-checker-engine all                                                                  \
     --model-checker-solvers all                                                                 \
