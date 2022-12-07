@@ -104,9 +104,14 @@ ENV PATH=$HOME/.local/bin:$PATH
 # https://github.com/crytic/solc-select/issues/132
 # https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH=$HOME/.cargo/bin:$PATH
-RUN $HOME/.cargo/bin/cargo install svm-rs
-RUN $HOME/.cargo/bin/svm install 0.8.17
+ENV PATH=/root/.cargo/bin:$PATH
+RUN cargo install svm-rs
+RUN svm install 0.8.17
+
+#Install foundry
+RUN curl -L https://foundry.paradigm.xyz | bash
+ENV PATH=/root/.foundry/bin:$PATH
+RUN foundryup
 
 # Get the evm-semantics repo
 RUN git clone https://github.com/runtimeverification/evm-semantics.git /root/evm-semantics \

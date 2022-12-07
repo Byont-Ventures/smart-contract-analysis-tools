@@ -40,9 +40,9 @@ echo "Flatten the contract to be verified"                                  | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/foundry-rs/foundry:latest "  \
-    cd /prj/                                                                \
-    && forge flatten ${pathToSourceFileFromRoot}/${contractName}.sol        \
+docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:AnalysisToolbox bash -c "    \
+    cd /prj/                                                                                    \
+    && forge flatten ${pathToSourceFileFromRoot}/${contractName}.sol                            \
     --output ${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol" 2>&1 | tee -a ${outputFile}
 
 echo ""                                                                     | tee -a ${outputFile}
@@ -51,7 +51,7 @@ echo "Generate helper modules for kevm to make writing claims easier"       | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:latest bash -c "                             \
+docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:AnalysisToolbox bash -c "                    \
     mkdir -p /prj/${pathToSecurityScansFromRoot}/kevm/generated                                                 \
     && solc-select install ${solcVersion} && solc-select use ${solcVersion} && solc --version                   \
     && kevm solc-to-k /prj/${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol ${contractName}    \
@@ -67,7 +67,7 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
 
 # Whenever you change the specifications, run this command again.
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:latest bash -c "                     \
+docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:AnalysisToolbox bash -c "            \
     kevm kompile --backend haskell /prj/${pathToKevmSpecFromRoot}/${contractName}-spec.md               \
         --definition /prj/${pathToSecurityScansFromRoot}/kevm/generated/${contractName}-spec/haskell    \
         --schedule ${evmVersion}                                                                        \
@@ -84,7 +84,7 @@ echo "Verify the the Solidity contract"                                     | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:latest bash -c "                     \
+docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/kevm:AnalysisToolbox bash -c "            \
     kevm prove --backend haskell /prj/${pathToKevmSpecFromRoot}/${contractName}-spec.md                 \
         --definition /prj/${pathToSecurityScansFromRoot}/kevm/generated/${contractName}-spec/haskell    \
         --schedule ${evmVersion}                                                                        \
