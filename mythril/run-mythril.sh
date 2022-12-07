@@ -50,9 +50,9 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
   
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c "                 \
-    myth -v 4                                                                                                   \
+    yes "" | svm install ${solcVersion} && svm use ${solcVersion}                                               \
+    && myth -v 4                                                                                                \
     analyze                                                                                                     \
-    --solv ${solcVersion}                                                                                       \
     -g /prj/${pathToSecurityScansFromRoot}/mythril/results/${contractName}/${contractName}-graph-Mythril.html   \
     -f /prj/${pathToSourceFileFromRoot}/solc-out/${contractName}.bin-runtime                                    \
     --bin-runtime" 2>&1 | tee -a ${outputFile}
@@ -64,9 +64,9 @@ echo "================================================================="    | te
 echo "" 
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c " \
-    myth -v 4                                                                                   \
+    yes "" | svm install ${solcVersion} && svm use ${solcVersion}                               \
+    && myth -v 4                                                                                \
     analyze                                                                                     \
-    --solv ${solcVersion}                                                                       \
     -o jsonv2                                                                                   \
     --transaction-count 2                                                                       \
     --parallel-solving                                                                          \
