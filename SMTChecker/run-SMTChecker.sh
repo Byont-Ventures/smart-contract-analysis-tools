@@ -20,18 +20,25 @@ outputFile=$(dirname "$0")/results/${contractName}/${contractName}-SMTChecker.re
 
 echo ""                                                                     | tee ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
+echo "Pulling latest ghcr.io/byont-ventures/analysis-toolbox:latest"        | tee -a ${outputFile}
+echo "================================================================="    | tee -a ${outputFile}
+echo ""                                                                     | tee -a ${outputFile}
+
+docker pull ghcr.io/byont-ventures/analysis-toolbox:latest
+
+echo ""                                                                     | tee -a ${outputFile}
+echo "================================================================="    | tee -a ${outputFile}
 echo "Running SMTChecker"                                                   | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --pull --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-tools:latest bash -c " \
-    cd /prj                                             \
-    && solc-select install ${solcVersion}               \
-    && solc-select use ${solcVersion}                   \
-    && solc                                             \
-    ${remappings}                                       \
-    --model-checker-engine all                          \
-    --model-checker-solvers all                         \
-    --model-checker-targets all                         \
-    --model-checker-timeout 60000                       \
+docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c " \
+    cd /prj                                                                                     \
+    && svm install ${solcVersion} && svm use ${solcVersion}                                     \
+    && solc                                                                                     \
+    ${remappings}                                                                               \
+    --model-checker-engine all                                                                  \
+    --model-checker-solvers all                                                                 \
+    --model-checker-targets all                                                                 \
+    --model-checker-timeout 60000                                                               \
     /prj/${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}

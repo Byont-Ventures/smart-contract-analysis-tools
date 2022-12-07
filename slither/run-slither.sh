@@ -19,14 +19,21 @@ outputFile=$(dirname "$0")/results/${contractName}/${contractName}-Slither.resul
 
 echo ""                                                                     | tee ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
+echo "Pulling latest ghcr.io/byont-ventures/analysis-toolbox:latest"        | tee -a ${outputFile}
+echo "================================================================="    | tee -a ${outputFile}
+echo ""                                                                     | tee -a ${outputFile}
+
+docker pull ghcr.io/byont-ventures/analysis-toolbox:latest
+
+echo ""                                                                     | tee -a ${outputFile}
+echo "================================================================="    | tee -a ${outputFile}
 echo "Run Slither"                                                          | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}        
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-tools:latest /bin/bash -c "                  \
+docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c "                     \
     cd /prj                                                                                                         \
-    && solc-select install ${solcVersion}                                                                           \
-    && solc-select use ${solcVersion}                                                                               \
+    && svm install ${solcVersion} && svm use ${solcVersion}                                                         \
     && rm -f ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json             \
     && slither --json ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json    \
     --config-file ${pathToSecurityScansFromRoot}/slither/slither.config.json    \
