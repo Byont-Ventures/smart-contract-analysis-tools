@@ -50,6 +50,7 @@ echo ""                                                                     | te
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c " \
     cd /prj/                                                                                    \
+    && mkdir -p ${pathToSecurityScansFromRoot}/flattened                                        \
     && forge flatten ${pathToSourceFileFromRoot}/${contractName}.sol                            \
     --output ${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol" 2>&1 | tee -a ${outputFile}
 
