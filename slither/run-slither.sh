@@ -33,7 +33,7 @@ echo ""                                                                     | te
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c "                     \
     cd /prj                                                                                                         \
-    && svm install ${solcVersion} && svm use ${solcVersion}                                                         \
+    && yes "" | svm install ${solcVersion} && svm use ${solcVersion}                                                         \
     && rm -f ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json             \
     && slither --json ${pathToSecurityScansFromRoot}/slither/results/${contractName}/${contractName}-output.json    \
     --config-file ${pathToSecurityScansFromRoot}/slither/slither.config.json    \

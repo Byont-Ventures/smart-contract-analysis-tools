@@ -33,7 +33,7 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c " \
-    && svm install ${solcVersion} && svm use ${solcVersion}                                     \
+    yes "" | svm install ${solcVersion} && svm use ${solcVersion}                                     \
     && yes "" | solc --base-path /prj                                                           \
         ${remappings}                                                                           \
         -o /prj/${pathToSourceFileFromRoot}/solc-out                                            \

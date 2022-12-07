@@ -62,7 +62,7 @@ echo ""                                                                     | te
 
 docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c "                 \
     mkdir -p /prj/${pathToSecurityScansFromRoot}/kevm/generated                                                 \
-    && svm install ${solcVersion} && svm use ${solcVersion}                                                     \
+    && yes "" | svm install ${solcVersion} && svm use ${solcVersion}                                                     \
     && kevm solc-to-k /prj/${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol ${contractName}    \
     --schedule ${evmVersion}                                                                                    \
     --pyk --verbose --profile --verbose --definition /root/evm-semantics/.build/usr/lib/kevm/haskell            \
