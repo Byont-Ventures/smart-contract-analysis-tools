@@ -127,10 +127,10 @@ RUN export Z3_VERSION_MAIN=$(echo ${Z3_VERSION} | cut -d'.' -f1)            \
     && cp /z3/build/libz3.so /lib/libz3.so.${Z3_VERSION_MAIN}.${Z3_VERSION_MIDDLE}
 
 #========================================
-# base-ubuntu-tooling-kevm
+# base-ubuntu-tooling-z3-kevm
 #========================================
 
-FROM base-ubuntu-tooling-z3 AS base-ubuntu-tooling-kevm
+FROM base-ubuntu-tooling-z3 AS base-ubuntu-tooling-z3-kevm
 
 # Get the evm-semantics repo
 ARG KEVM_VERSION=1.0.1
@@ -143,8 +143,7 @@ RUN git clone https://github.com/runtimeverification/evm-semantics.git /root/evm
 WORKDIR /root/evm-semantics
 
 # Install dependencies with poetry
-RUN apt install -y python3-pip          \
-    && pip3 install virtualenv poetry   \
+RUN pip3 install virtualenv poetry   \
     && cd /root/evm-semantics/kevm-pyk  \
 	&& make poetry-install
 ENV PYTHONPATH=/root/.cache/pypoetry/virtualenvs/kevm-pyk-wYudXE09-py3.8/lib/python3.8/site-packages:$PYTHONPATH
@@ -181,11 +180,13 @@ RUN if [ "$(uname -m)" = "aarch64" ]; then                                  \
 
 ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
 
+WORKDIR /
+
 #========================================
 # final-image
 #========================================
 
-FROM base-ubuntu-tooling-z3 AS final-image
+FROM base-ubuntu-tooling-z3-kevm AS final-image
 
 ## For pyo when installing Mythril
 RUN rustup default nightly
@@ -200,7 +201,7 @@ RUN git clone https://github.com/ConsenSys/mythril.git  \
     && pip3 install maturin                             \
     && pip3 install -r requirements.txt                 \
     && python3 setup.py install                         \
-    && cd ../../                                        \
+    && cd ../                                           \
     && rm -r ./mythril
 
 # Install Slither
@@ -211,20 +212,13 @@ RUN pip3 install slither-analyzer==${SLITHER_VERSION}
 # https://github.com/crytic/solc-select/issues/132 normal solc-select not ready yet for ARM
 # https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
 RUN cargo install svm-rs    \
-    && svm install 0.8.17
+    && svm install 0.8.17   \
+    && svm use 0.8.17
 
 # Install foundry
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH=/root/.foundry/bin:$PATH
 RUN foundryup
-
-# Get kevm files
-COPY --from=base-ubuntu-tooling-kevm /root/evm-semantics /root/evm-semantics
-ENV PYTHONPATH=/root/.cache/pypoetry/virtualenvs/kevm-pyk-wYudXE09-py3.8/lib/python3.8/site-packages:$PYTHONPATH
-ENV PYTHONPATH=/root/evm-semantics/kevm-pyk/src:$PYTHONPATH
-ENV PATH=/root/evm-semantics/.build/usr/bin:$PATH
-ENV PATH=/root/evm-semantics/.build/usr/lib/kevm/kframework/bin:$PATH
-ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
 
 RUN apt autoremove --purge  \
     && apt autoclean        \
