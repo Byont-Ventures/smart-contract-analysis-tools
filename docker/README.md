@@ -7,16 +7,8 @@
 - analysis-tools: [ghcr.io/byont-ventures/analysis-tools:latest](https://github.com/orgs/Byont-Ventures/packages/container/package/analysis-tools)
 - kevm: [ghcr.io/byont-ventures/kevm:latest](https://github.com/orgs/Byont-Ventures/packages/container/package/kevm)
 
-## Build and push images
-
-To build the dockerfile to use `hevm`, `slither` and the `SMTChecker` run:
+## Build and push images:
 
 ```bash
-$ ./releaseDockerAnalysisTools.sh
-```
-
-Building the image to use `kevm` requires:
-
-```bash
-$ ./releaseDockerKevm.sh
+$ ./releaseDockerAnalysisToolbox.sh
 ```
