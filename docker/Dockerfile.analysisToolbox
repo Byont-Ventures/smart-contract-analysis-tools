@@ -211,6 +211,7 @@ RUN pip3 install slither-analyzer==${SLITHER_VERSION}
 # Install solc
 # https://github.com/crytic/solc-select/issues/132 normal solc-select not ready yet for ARM
 # https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
+# Unfortunately the binaries that svm uses for aarch64 don't make use of the flag `USE_Z3_DLOPEN`. An issue has been created: https://github.com/nikitastupin/solc/issues/6
 RUN cargo install svm-rs    \
     && svm install 0.8.17   \
     && svm use 0.8.17
