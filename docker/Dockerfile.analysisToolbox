@@ -127,6 +127,28 @@ RUN export Z3_VERSION_MAIN=$(echo ${Z3_VERSION} | cut -d'.' -f1)            \
     && cp /z3/build/libz3.so /lib/libz3.so.${Z3_VERSION_MAIN}.${Z3_VERSION_MIDDLE}
 
 #========================================
+# base-ubuntu-tooling-z3-solc
+#========================================
+
+FROM base-ubuntu-tooling-z3 AS base-ubuntu-tooling-z3-solc
+
+RUN DEBIAN_FRONTEND=noninteractive apt install -y libboost-all-dev
+
+# https://github.com/crytic/solc-select/issues/132 normal solc-select not ready yet for ARM
+# https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
+# Unfortunately the binaries that svm uses for aarch64 don't make use of the flag `USE_Z3_DLOPEN`. An issue has been created: https://github.com/nikitastupin/solc/issues/6
+
+# I get the same error as here: https://github.com/ethereum/solidity/issues/13178
+ARG SOLC_VERSION=0.8.17
+RUN git clone --recursive https://github.com/ethereum/solidity.git \
+	&& cd solidity \
+	&& git checkout v${SOLC_VERSION} \
+    && mkdir ./build \
+    && cd ./build \
+    && cmake .. -DCMAKE_BUILD_TYPE=Release -DSTRICT_Z3_VERSION=OFF -DUSE_Z3_DLOPEN=ON \
+    && make -j4
+
+#========================================
 # base-ubuntu-tooling-z3-kevm
 #========================================
 
@@ -208,18 +230,16 @@ ENV PATH=/mythril:$PATH
 ARG SLITHER_VERSION=0.9.0
 RUN pip3 install slither-analyzer==${SLITHER_VERSION}
 
-# Install solc
-# https://github.com/crytic/solc-select/issues/132 normal solc-select not ready yet for ARM
-# https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
-# Unfortunately the binaries that svm uses for aarch64 don't make use of the flag `USE_Z3_DLOPEN`. An issue has been created: https://github.com/nikitastupin/solc/issues/6
-RUN cargo install svm-rs    \
-    && svm install 0.8.17   \
-    && svm use 0.8.17
-
 # Install foundry
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH=/root/.foundry/bin:$PATH
 RUN foundryup
+
+# Get solc files
+COPY --from=base-ubuntu-tooling-z3-solc /usr/local/bin/solc /usr/local/bin/solc
+
+# Make sure that solc can be found
+RUN solc --version
 
 RUN pip3 install --upgrade requests
 
