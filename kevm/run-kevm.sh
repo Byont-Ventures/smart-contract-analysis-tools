@@ -34,13 +34,15 @@ fi
 mkdir -p $(dirname "$0")/results/${contractName}
 outputFile=$(dirname "$0")/results/${contractName}/${contractName}-kevm.result
 
+dockerImage=ghcr.io/byont-ventures/analysis-toolbox:latest
+
 echo ""                                                                     | tee ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
-echo "Pulling latest ghcr.io/byont-ventures/analysis-toolbox:latest"        | tee -a ${outputFile}
+echo "Pulling latest ${dockerImage}"                                        | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker pull ghcr.io/byont-ventures/analysis-toolbox:latest
+docker pull ${dockerImage}
 
 echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
@@ -48,7 +50,7 @@ echo "Flatten the contract to be verified"                                  | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c " \
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c " \
     cd /prj/                                                                                    \
     && mkdir -p ${pathToSecurityScansFromRoot}/flattened                                        \
     && forge flatten ${pathToSourceFileFromRoot}/${contractName}.sol                            \
@@ -60,9 +62,8 @@ echo "Generate helper modules for kevm to make writing claims easier"       | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c "                 \
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                                                 \
     mkdir -p /prj/${pathToSecurityScansFromRoot}/kevm/generated                                                 \
-    && yes "" | svm install ${solcVersion} && svm use ${solcVersion}                                                     \
     && kevm solc-to-k /prj/${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol ${contractName}    \
     --schedule ${evmVersion}                                                                                    \
     --pyk --verbose --profile --verbose --definition /root/evm-semantics/.build/usr/lib/kevm/haskell            \
@@ -76,7 +77,7 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
 
 # Whenever you change the specifications, run this command again.
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c "         \
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                                         \
     kevm kompile --backend haskell /prj/${pathToKevmSpecFromRoot}/${contractName}-spec.md               \
         --definition /prj/${pathToSecurityScansFromRoot}/kevm/generated/${contractName}-spec/haskell    \
         --schedule ${evmVersion}                                                                        \
@@ -93,7 +94,7 @@ echo "Verify the the Solidity contract"                                     | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c "         \
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                                         \
     kevm prove --backend haskell /prj/${pathToKevmSpecFromRoot}/${contractName}-spec.md                 \
         --definition /prj/${pathToSecurityScansFromRoot}/kevm/generated/${contractName}-spec/haskell    \
         --schedule ${evmVersion}                                                                        \

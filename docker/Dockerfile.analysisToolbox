@@ -105,7 +105,7 @@ FROM base-ubuntu-tooling AS base-ubuntu-tooling-z3
 # Install z3
 # Version $Z3_VERSION required by kevm v${KEVM_VERSION}-${KEVM_COMMIT}
 # https://github.com/runtimeverification/evm-semantics/releases/tag/v$KEVM_VERSION
-ARG Z3_VERSION=4.8.15
+ARG Z3_VERSION=4.8.16
 
 RUN git clone https://github.com/Z3Prover/z3.git \
 	&& cd z3 \
@@ -137,22 +137,28 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y libboost-all-dev
 # https://github.com/crytic/solc-select/issues/132 normal solc-select not ready yet for ARM
 # https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
 # Unfortunately the binaries that svm uses for aarch64 don't make use of the flag `USE_Z3_DLOPEN`. An issue has been created: https://github.com/nikitastupin/solc/issues/6
+# solc only support z3 >= 4.8.16 https://github.com/ethereum/solidity/issues/13178
 
-# I get the same error as here: https://github.com/ethereum/solidity/issues/13178
+# CMAKE_INSTALL_BINDIR doesn't seems to be set, event though CMakeLists.txt in solidity/solc uses `include(GNUInstallDirs)`
+
 ARG SOLC_VERSION=0.8.17
 RUN git clone --recursive https://github.com/ethereum/solidity.git \
-	&& cd solidity \
+	&& cd ./solidity \
 	&& git checkout v${SOLC_VERSION} \
     && mkdir ./build \
     && cd ./build \
     && cmake .. -DCMAKE_BUILD_TYPE=Release -DSTRICT_Z3_VERSION=OFF -DUSE_Z3_DLOPEN=ON \
-    && make -j4
+    && make -j4 \
+    && cd ../../ \
+    && find ./solidity -mindepth 1 ! -regex '^./solidity/build\(/.*\)?' -delete
+
+ENV PATH=/solidity/build/solc:$PATH
 
 #========================================
-# base-ubuntu-tooling-z3-kevm
+# base-ubuntu-tooling-z3-solc-kevm
 #========================================
 
-FROM base-ubuntu-tooling-z3 AS base-ubuntu-tooling-z3-kevm
+FROM base-ubuntu-tooling-z3-solc AS base-ubuntu-tooling-z3-solc-kevm
 
 # Get the evm-semantics repo
 ARG KEVM_VERSION=1.0.1
@@ -208,7 +214,7 @@ WORKDIR /
 # final-image
 #========================================
 
-FROM base-ubuntu-tooling-z3-kevm AS final-image
+FROM base-ubuntu-tooling-z3-solc-kevm AS final-image
 
 ## For pyo when installing Mythril
 RUN rustup default nightly
@@ -234,12 +240,6 @@ RUN pip3 install slither-analyzer==${SLITHER_VERSION}
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH=/root/.foundry/bin:$PATH
 RUN foundryup
-
-# Get solc files
-COPY --from=base-ubuntu-tooling-z3-solc /usr/local/bin/solc /usr/local/bin/solc
-
-# Make sure that solc can be found
-RUN solc --version
 
 RUN pip3 install --upgrade requests
 

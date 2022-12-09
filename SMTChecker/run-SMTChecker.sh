@@ -18,13 +18,15 @@ fi
 mkdir -p $(dirname "$0")/results/${contractName}
 outputFile=$(dirname "$0")/results/${contractName}/${contractName}-SMTChecker.result
 
+dockerImage=ghcr.io/byont-ventures/analysis-toolbox:latest
+
 echo ""                                                                     | tee ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
-echo "Pulling latest ghcr.io/byont-ventures/analysis-toolbox:latest"        | tee -a ${outputFile}
+echo "Pulling latest ${dockerImage}"                                        | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker pull ghcr.io/byont-ventures/analysis-toolbox:latest
+docker pull ${dockerImage}
 
 echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
@@ -32,13 +34,12 @@ echo "Running SMTChecker"                                                   | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ghcr.io/byont-ventures/analysis-toolbox:latest bash -c " \
-    cd /prj                                                                                     \
-    && yes "" | svm install ${solcVersion} && svm use ${solcVersion}                                     \
-    && yes "" | solc                                                                            \
-    ${remappings}                                                                               \
-    --model-checker-engine all                                                                  \
-    --model-checker-solvers all                                                                 \
-    --model-checker-targets all                                                                 \
-    --model-checker-timeout 60000                                                               \
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c " \
+    cd /prj                                                     \
+    && solc                                                     \
+    ${remappings}                                               \
+    --model-checker-engine all                                  \
+    --model-checker-solvers all                                 \
+    --model-checker-targets all                                 \
+    --model-checker-timeout 60000                               \
     /prj/${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}
