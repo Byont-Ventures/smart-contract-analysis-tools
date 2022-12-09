@@ -18,21 +18,31 @@ fi
 mkdir -p $(dirname "$0")/results/${contractName}
 outputFile=$(dirname "$0")/results/${contractName}/${contractName}-Mythril.result
 
+dockerImage=ghcr.io/byont-ventures/analysis-toolbox:latest
+
 echo ""                                                                     | tee ${outputFile}
+echo "================================================================="    | tee -a ${outputFile}
+echo "Pulling latest ${dockerImage}"                                        | tee -a ${outputFile}
+echo "================================================================="    | tee -a ${outputFile}
+echo ""                                                                     | tee -a ${outputFile}
+
+docker pull ${dockerImage}
+
+echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo "Generate bin-runtime: solc ${solcVersion}"                            | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
-docker run --rm -v ${projectRoot}:/prj ethereum/solc:${solcVersion}     \
-    --base-path /prj                                                    \
-    ${remappings}                                                       \
-    -o /prj/${pathToSourceFileFromRoot}/solc-out                        \
-    --opcodes                                                           \
-    --asm                                                               \
-    --bin-runtime                                                       \
-    --overwrite                                                         \
-    /prj/src/smart-contracts/${contractName}.sol 2>&1 | tee -a ${outputFile}
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "     \
+    solc --base-path /prj                                           \
+        ${remappings}                                               \
+        -o /prj/${pathToSourceFileFromRoot}/solc-out                \
+        --opcodes                                                   \
+        --asm                                                       \
+        --bin-runtime                                               \
+        --overwrite                                                 \
+        /prj/src/smart-contracts/${contractName}.sol" 2>&1 | tee -a ${outputFile}
 
 echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}    
@@ -40,14 +50,12 @@ echo "Run Mythril: callgraph"                                               | te
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
   
-docker run --rm -v ${projectRoot}:/prj mythril/myth:0.23.10                                                     \
-     -v 4                                                                                                       \
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                                                 \
+    myth -v 4                                                                                                   \
     analyze                                                                                                     \
-    --solv ${solcVersion}                                                                                       \
     -g /prj/${pathToSecurityScansFromRoot}/mythril/results/${contractName}/${contractName}-graph-Mythril.html   \
     -f /prj/${pathToSourceFileFromRoot}/solc-out/${contractName}.bin-runtime                                    \
-    --bin-runtime                                                                                               \
-    2>&1 | tee -a ${outputFile}
+    --bin-runtime" 2>&1 | tee -a ${outputFile}
 
 echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}    
@@ -55,10 +63,9 @@ echo "Run Mythril analyze"                                                  | te
 echo "================================================================="    | tee -a ${outputFile}
 echo "" 
 
-docker run --rm -v ${projectRoot}:/prj mythril/myth:0.23.10                     \
-     -v 4                                                                       \
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                 \
+    myth -v 4                                                                   \
     analyze                                                                     \
-    --solv ${solcVersion}                                                       \
     -o jsonv2                                                                   \
     --transaction-count 2                                                       \
     --parallel-solving                                                          \
@@ -68,5 +75,4 @@ docker run --rm -v ${projectRoot}:/prj mythril/myth:0.23.10                     
     --no-onchain-data                                                           \
     --pruning-factor 1                                                          \
     -f /prj/${pathToSourceFileFromRoot}/solc-out/${contractName}.bin-runtime    \
-    --bin-runtime                                                               \
-    2>&1 | tee -a ${outputFile}
+    --bin-runtime" 2>&1 | tee -a ${outputFile}
