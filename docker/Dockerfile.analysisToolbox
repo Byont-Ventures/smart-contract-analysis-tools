@@ -141,14 +141,15 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y libboost-all-dev
 # CMAKE_INSTALL_BINDIR doesn't seems to be set, event though CMakeLists.txt in solidity/solc uses `include(GNUInstallDirs)`
 
 ARG SOLC_VERSION=0.8.17
-RUN git clone --recursive https://github.com/ethereum/solidity.git \
-	&& cd ./solidity \
-	&& git checkout v${SOLC_VERSION} \
-    && mkdir ./build \
-    && cd ./build \
-    && cmake .. -DCMAKE_BUILD_TYPE=Release -DSTRICT_Z3_VERSION=OFF -DUSE_Z3_DLOPEN=ON \
-    && make -j4 \
-    && cd ../../ \
+RUN git clone --recursive https://github.com/ethereum/solidity.git                      \
+	&& cd ./solidity                                                                    \
+	&& git checkout v${SOLC_VERSION}                                                    \
+    && touch ./prerelease.txt                                                             \
+    && mkdir ./build                                                                    \
+    && cd ./build                                                                       \
+    && cmake .. -DCMAKE_BUILD_TYPE=Release -DSTRICT_Z3_VERSION=OFF -DUSE_Z3_DLOPEN=ON   \
+    && make -j4                                                                         \
+    && cd ../../                                                                        \
     && find ./solidity -mindepth 1 ! -regex '^./solidity/build\(/.*\)?' -delete
 
 ENV PATH=/solidity/build/solc:$PATH
