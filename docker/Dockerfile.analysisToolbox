@@ -142,8 +142,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y libboost-all-dev
 
 ARG SOLC_VERSION=0.8.17
 RUN git clone --recursive https://github.com/ethereum/solidity.git                      \
-	&& cd ./solidity                                                                    \
-	&& git checkout v${SOLC_VERSION}                                                    \
+    && cd ./solidity                                                                    \
+    && git checkout v${SOLC_VERSION}                                                    \
     && touch ./prerelease.txt                                                           \
     && mkdir ./build                                                                    \
     && cd ./build                                                                       \
