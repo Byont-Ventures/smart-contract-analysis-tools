@@ -4,6 +4,7 @@ use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process;
 
 // Import the different tools
@@ -22,7 +23,6 @@ struct Config {
 
 #[derive(Deserialize)]
 struct ConfigEnvironment {
-    project_root: String,
     security_scans_rel_path: String,
     source_rel_path: String,
     remappings: Vec<String>,
@@ -76,7 +76,17 @@ fn main() {
         }
     };
 
-    let project_root_path_abs = config.environment.project_root;
+    let mut cur_dir: PathBuf = env::current_dir().unwrap();
+    cur_dir.pop();
+
+    let project_root_path_abs = match cur_dir.to_str() {
+        Some(s) => s,
+        _ => {
+            println!("{}", format!("\nERROR: Converting root path to string\n"));
+            process::exit(1);
+        }
+    };
+
     let report_rel_path = config.report.report_output_rel_path;
     let security_scan_path_rel = config.environment.security_scans_rel_path;
     let contract_source_path_rel = config.environment.source_rel_path;
