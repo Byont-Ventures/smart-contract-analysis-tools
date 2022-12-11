@@ -55,7 +55,7 @@ $ yarn --cwd <path to this submodule> run   \
 >
 > No guaranties about the security of your contract can be claimed based solely on the report.
 
-More information about the techniques used in the tools can be found in the [DeepDive.md](./DeepDive.md) document.
+More information about the techniques used in the tools can be found in the [analysis-techniques.md](./docs/analysis-techniques.md) document.
 
 ## Slither (version 0.9.0)
 
