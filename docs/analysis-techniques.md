@@ -36,7 +36,7 @@ On first sight it seems just fine. However, not that an `uint256` is casted to a
 
 So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of $2^{255}$ (`0b100.....`), `msg.sender` would instead have a debt now of $-2^{255} + \text{original credit}$. Oops...
 
-A simple fix would be to add `require(amount <= type(int256).max, "Amount too large");`. Assuming that an up-to-date solc version is used that checks for overflows.
+A simple fix would be to add `require(amount <= uint256(type(int256).max), "Amount too large");`. Assuming that an up-to-date solc version is used that checks for overflows.
 
 If this function could be naively tested, a test could be created to only check for valid values of `amount`. This would miss the scenario described above.
 
@@ -64,24 +64,28 @@ One of the techniques used as the backbone of both non-automated and automated t
 
 A technique that uses SMT is [Symbolic execution](#symbolic-execution) that checks all branches of a program to see if any of them lead to a failing assertions. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
 
-What this introduction tries to make clear is that, (1) SMT is the backbone in software analysis, and (2) one technique doesn't exclude the other.
+---
 
 ## Satisfiable Modulo Theory (SMT)
 
-To get a better idea of what an SMT checker does, we will go over a simple example. We will use [z3](https://github.com/Z3Prover/z3) as this is the most used SMT checker for automatic analysis tools for Solidity.
+To get a better idea of what an SMT checker does, we will go over a simple example. We will use [z3](https://github.com/Z3Prover/z3) as this is the most used SMT checker for automatic analysis tools (for Solidity).
 
 An online z3 runner can be used if you want to try the examples yourself: https://microsoft.github.io/z3guide/playground/Freeform%20Editing
 
-Let's say that we have integers `a` and `b` with the following:
+Please note that SMT is a general tool and can be used for more that only software languages. The SMT solver simply tries to find a satisfiable assignment for a set of constraints (assumptions and requirements).
+
+For the example lets say that we have integers `a` and `b` with the following constraints:
 
 - Assumption: `a > 15`
 - Requirement: `a + b > 100`
 
-In Solidity this could look like this:
+In Solidity this could look like the code below.
+
+Note that the assumptions and requirements can originate from knowledge about the system in which the function is used, while the function itself doesn't have this knowledge explicitly.
 
 ```Solidity
 function specialAdd(int256 a, int256 b) returns (int256 c) {
-    require(a > 15);
+    require(a > 15, "a <= 15");
 
     c = a + b;
 
@@ -91,9 +95,11 @@ function specialAdd(int256 a, int256 b) returns (int256 c) {
 
 ### Checking if the requirement can hold
 
-We can first check if the requirement (`a + b > 100`) can hold at al. This can be done with the following checks in z3. The syntax used is [SMTLib](https://microsoft.github.io/z3guide/docs/logic/basiccommands).
+We can first check if the requirement (`a + b > 100`) can hold at al. This can be done with the checks as shown below in z3. The syntax used is [SMTLib](https://microsoft.github.io/z3guide/docs/logic/basiccommands). For this example it is enough to know that SMTLib uses the format `(operation arg1 arg2 ... argn)`. Meaning that `(+ a b)` represents `a + b`.
 
 It is important to note that here we only check that there is **at least one** assignment for `a` and `b` that makes sure that `a + b > 100`.
+
+First we introduce the values `a` and `b` using `declare-const`, then we describe the constraints using `assert`. After this, we check if the constraints can be satisfied with `(check-sat)` and get an example assignment with `(get-model)`.
 
 ```z3
 (declare-const a Int)
@@ -106,7 +112,7 @@ It is important to note that here we only check that there is **at least one** a
 (get-model)
 ```
 
-Running this in the online tool results in the following output. Saying that if `a = 16` and `b = 85` that all requirements are met (which is true since `16 + 85 = 101`).
+Running this in the online tool results in the following output. Saying that if `a = 16` and `b = 85` that all constraints are met (which is true since `16 + 85 = 101 > 100`).
 
 ```
 sat
@@ -118,7 +124,7 @@ sat
 )
 ```
 
-However, now we only know that it is possible. We don't know yet if `a + b` is always more than 100.
+However, now we only know that it is possible. We don't know yet if `a + b` is always more than 100. This approach can be compared to testing only the happy-flow when writing unit-tests. We need to check if the requirement can be violated instead.
 
 ### Checking if the requirement will always hold
 
@@ -135,7 +141,7 @@ To check if our requirement always holds we will check for the **negation** of o
 (get-model)
 ```
 
-Resulting in the following output. This says that the negation of our requirement can be satisfied. Meaning that the requirement is not met. A counter-example to our requirement is given as `a = 16` and `b = 84` resulting in `16 + 84 = 100`. The requirement is indeed violated.
+Resulting in the following output. This says that the negation of our requirement can be satisfied. Meaning that the requirement is not met. A counter-example to our requirement is given as `a = 16` and `b = 84` resulting in `16 + 84 = 100 <= 100`. The requirement is indeed violated.
 
 ```
 sat
@@ -147,39 +153,66 @@ sat
 )
 ```
 
-This example shows that SMT tools can be used to check if logical requirements can be violated and that they can give a counter-example if it is violated.
+This example showed that SMT tools can be used to check if logical requirements can be violated and that they can give a counter-example if it is violated.
 
-For more complex systems you would generally not write these rules in z3 manually, but instead, generate them using a higher-level tool.
+For more complex systems you would generally not write these rules in z3 manually, but instead, generate them using a higher-level tool. More often SMT is part of more advanced tooling like **symbolic execution**. The example below which describe this.
+
+---
 
 ## Symbolic execution
 
 Consider the function `sumIsEven()`.
 
 ```Solidity
-function sumIsEven(uint256 a, uint256 b) returns (bool) {
+function sumIsEven(uint256 a, uint256 b) returns (bool isEven) {
     uint256 sum = a + b;
-    bool isEven = (sum % 2 == 0);
-
-    return isEven;
+    isEven = (sum % 2 == 0);
 }
 ```
 
 First, let's make the difference between **concrete execution** and **symbolic execution** clear.
 
-- **Concrete execution:** the parameters `a` and `b` would be assigned actual values (like `4` and `13`). The variable `sum` would be a concrete value (the result of `a + b`, for exampl,e `4 + 13 = 17`) and the function would return **either** `true` or `false`.
-- **Symbolic execution:** the execution assigns the parameter `a` the symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `sum` would now be assigned the symbolic value `A + B`. This can't be simplified due to `A` and `B` being symbolic. Since `sum % 2 == 0` is an if-statement in disguise, the execution splits into two branches. One where `isEven = true` and one where `isEven = false`. The execution now checks both branches further. A more visual example of this flow can be found below.
+- **Concrete execution:** the parameters `a` and `b` to `sumIsEven()` would be assigned actual values (like `4` and `13`). The variable `sum` would be a concrete value (the result of `a + b`, for exampl,e `4 + 13 = 17`) and the function would return **either** `true` or `false`.
+- **Symbolic execution:** the execution assigns the parameter `a` the symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `sum` would now be assigned the symbolic value `A + B`. This can't be simplified due to `A` and `B` being symbolic. Since `sum % 2 == 0` is an if-statement in disguise (it returns either `true` or `false`), the execution splits into two branches. One where `isEven = true` and one where `isEven = false`. The execution now checks both branches further. A more visual example of this flow can be found below.
 
-So when a variable would be used in a branch to determine which path to take, the symbolic execution would take both branches. When one of the branches would then throw an error, the tool would determine a concrete value (get a counter-example using an SMT checker) that would cause the program to take this branch.
+So when a variable is used in a branch to determine which path to take, the symbolic execution would 'take both' branches. When one of the branches would then throw an error, the tool would determine a concrete value (get a counter-example using an SMT checker) that would cause the program to take this branch.
 
 ### Example
 
 In the example below this process can be seen in action. The program has multiple possible paths starting from the top. the variables `x` and `y` are assigned the symbolic values `X` and `Y` respectively. Each time that the symbolic execution learns something about a variable it will be stored in the Path Condition (`PC`) for that particular path. One branch in the image below knows that the symbolic values meet `X <= Y` in that branch. While in the other branch the program knows that `X > Y` holds. This is simply based on the condition required for that path (the if-statement).
 
-In between the two if-statements, the symbolic values are used for some arithmetic which is again done symbolically. In the end, the variable `x` is equal to the symbolic value `Y` while variable `y` equals the symbolic value `X`
+In between the two if-statements, the symbolic values are used for some arithmetic which is again done symbolically. The operations swap the assigned values of `x` and `y`. In the end, the variable `x` is equal to the symbolic value `Y` while variable `y` equals the symbolic value `X`.
 
-In the end, there is one path that has a failing assert. The path condition (`PC`) there is `X > Y && Y > X`. Note that the left side of the `&&` is from the first branch while the right side is from the second branch.
+The second if-statement than checks if `x` (now with symbolic value `Y`) is greater than `y` (now with symbolic value `X`). There is one path that has a failing assert (the path where `x > y`). The path condition (`PC`) there is `X > Y && Y > X`. Note that the left side of the `&&` is from the first branch while the right side is from the second branch.
 
-Determining if this branch can be reached is done with an SMT checker. We saw in the example of the SMT checker already how to do simple checks in z3. Running the following code in the [online tool](https://microsoft.github.io/z3guide/playground/Freeform%20Editing) results in `unsat`. Meaning that the path is not reachable and thus we know that the loop does what it is expected to do.
+```solidity
+int256 x;
+int256 y;
+
+if (x > y) {
+    x = x + y;
+    y = x - y;
+    x = x - y;
+
+    if (x > y) {
+        assert(false);
+    }
+}
+```
+
+```mermaid
+flowchart TB
+    A["[PC:true] x = X, y = Y"] ---> B{"[PC:true] X > Y"}
+    B ---|false| C["[PC:(X <= Y)] END"]
+    B ---|true| D["[PC:(X > Y)] x = X + Y\n[PC:(X > Y)] y = X + Y - Y = X\n[PC:(X > Y)] y = X + Y - X = Y"]
+    D ---> E{"[PC:(X > Y)] Y > X"}
+    E ---|false| F["[PC:(X > Y) && (Y <= X)] END"]
+    E ---|true| G["[PC:(X > Y) && (Y > X)] END"]
+```
+
+Source: https://www.researchgate.net/publication/314950910_Software_Static_Energy_Modeling_for_Modern_Processors
+
+Determining if this branch can be reached is done with an SMT checker. We saw in the example of the SMT checker already how to do simple checks in z3. Running the following code in the [online tool](https://microsoft.github.io/z3guide/playground/Freeform%20Editing) results in `unsat`. Meaning that the path is not reachable and thus we know that the loop does what it is expected to do (swapping `x` and `y` to not reach the failing assert).
 
 ```z3
 (declare-const X Int)
@@ -189,10 +222,6 @@ Determining if this branch can be reached is done with an SMT checker. We saw in
 
 (check-sat)
 ```
-
-<img src="./img/Example-of-symbolic-execution-of-a-code.jpg" alt="Symbolic execution example" width="80%"/>
-
-Source: https://www.researchgate.net/publication/314950910_Software_Static_Energy_Modeling_for_Modern_Processors
 
 ## Static analysis
 
