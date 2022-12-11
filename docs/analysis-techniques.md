@@ -1,27 +1,72 @@
-- [Analysis techniques](#analysis-techniques)
-    - [Example: Satisfiable Modulo Theory (SMT)](#example-satisfiable-modulo-theory-smt)
-      - [Checking if the requirement can hold](#checking-if-the-requirement-can-hold)
-      - [Checking if the requirement will always hold](#checking-if-the-requirement-will-always-hold)
-    - [Example: Symbolic execution](#example-symbolic-execution)
-      - [Example](#example)
-    - [Constraint Horn Clauses (CHC)](#constraint-horn-clauses-chc)
-    - [Matching logic](#matching-logic)
-  - [Verifying source code vs bytecode](#verifying-source-code-vs-bytecode)
-- [More sources](#more-sources)
-
 # Analysis techniques
 
-Analyzing software can be done using several techniques. What you will notice, however, when learning more about all these techniques is that there is not always a clear division between them.
+- [Analysis techniques](#analysis-techniques)
+  - [Unit testing](#unit-testing)
+  - [Fuzzing (property testing)](#fuzzing-property-testing)
+  - [Can we do better?](#can-we-do-better)
+  - [Automated testing](#automated-testing)
+  - [Satisfiable Modulo Theory (SMT)](#satisfiable-modulo-theory-smt)
+    - [Checking if the requirement can hold](#checking-if-the-requirement-can-hold)
+    - [Checking if the requirement will always hold](#checking-if-the-requirement-will-always-hold)
+  - [Symbolic execution](#symbolic-execution)
+    - [Example](#example)
+  - [Static analysis](#static-analysis)
+  - [Constraint Horn Clauses (CHC)](#constraint-horn-clauses-chc)
+  - [Matching logic](#matching-logic)
+  - [Verifying source code vs bytecode](#verifying-source-code-vs-bytecode)
+  - [More sources](#more-sources)
 
-A lot of times multiple techniques are extensions of other techniques. In particular, [Satisfiable Modulo Theory (SMT)](#satisfiable-modulo-theory-smt) is one of the more fundamental techniques used. The main purpose of SMT is to check if the variables in a program can have a certain initial value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
+## Unit testing
 
-[Symbolic execution](#symbolic-execution) is a technique that checks all branches of a program to see if there are failing branches. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution to avoid wasting processing time on branches that can't be reached anyway.
+Every developer writes unit-tests for there code (right?). The goal of such a unit test is to test that a single function does what it is expected to do. Or, depending on the usage, testing that a certain function calls other function to perform a local integration test. Sounds easy enough.
 
-Another technique is to use [Constraint Horn Clauses (CHC)](#constraint-horn-clauses-chc). This will transfer the source code into logic and checks if certain failing paths can be found. CHC is a layer on top of SMT and is similar to symbolic execution.
+Let's have a simple function as seen below:
+
+```solidity
+mapping(address => int256) credit;
+
+/// @notice Paying off existing dept, or adding credit.
+/// @param amount The amount to add to the credit.
+function payOff(uint256 amount) public {
+    credit[msg.sender] += int256(amount);
+}
+```
+
+On first sight it seems just fine. However, not that an `uint256` is casted to an `int256`. Solidity uses [two's complement](https://nl.wikipedia.org/wiki/Two%27s_complement) for representing negative values. Meaning that where `uint256` has the range [0, $2^{256} - 1$], `int256` has the range [$-2^{255}$, $-2^{255} - 1$].
+
+So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of $2^{255}$ (`0b100.....`), `msg.sender` would instead have a debt now of $-2^{255} + \text{original credit}$. Oops...
+
+A simple fix would be to add `require(amount <= type(int256).max, "Amount too large");`. Assuming that an up-to-date solc version is used that checks for overflows.
+
+If this function could be naively tested, a test could be created to only check for valid values of `amount`. This would miss the scenario described above.
+
+## Fuzzing (property testing)
+
+Another technique is to using fuzzing on your unit tests. Fuzzing is also called property-testing. This is because instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the type of course). So now you really need to think of what the behavior is instead of what the result should be. The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework has this built-in.
+
+Fuzzing, however, still is only running unit-tests. But depending on the quality of the fuzzer, the problems described for the `payOff()` function would likely have been found due to a fuzz parameter being `>= 2^255`.
+
+## Can we do better?
+
+Unit-testing and fuzzing are great. But they require you to write tests. A lot of tests if you want to have a high coverage of all the possible paths. The more unit-tests you have, the easier it is to do a refactor with confidence. Great! The downside is that a refactor likely also requires some of the tests to be refactored. Not so great!
+
+Unit-tests and fuzzing are needed. No doubt about that. But we could try to make our lives easier by also making use of automated testers and scanners.
+
+## Automated testing
+
+A lot of research and development has gone into automated testing and verification tools. What these tools have in common is that they get the source code (preferably with a lot of `assert()` statements to know what to look for) and look if certain failing asserts can be reached or is code-smells can be found.
+
+Note that the the term 'source code' was used here. This can either the be actual source code or the compiled bytecode. The reason for pointing this out if because there are also non-automated verification techniques. For these techniques the user has to define a model of how to design works (the design, not the code). Additionally, properties on this design have to be defined. The verification tooling will then take the model and the properties and checks if they can be satisfied.
+
+What you will notice when diving more into these different (non-)automated tooling is that there will always be a bit of both, while there are clear differences between techniques and tooling, there is also quite some overlap.
+
+One of the techniques used as the backbone of both non-automated and automated technique is [Satisfiable Modulo Theory (SMT)](#satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
+
+A technique that uses SMT is [Symbolic execution](#symbolic-execution) that checks all branches of a program to see if any of them lead to a failing assertions. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
 
 What this introduction tries to make clear is that, (1) SMT is the backbone in software analysis, and (2) one technique doesn't exclude the other.
 
-### Example: Satisfiable Modulo Theory (SMT)
+## Satisfiable Modulo Theory (SMT)
 
 To get a better idea of what an SMT checker does, we will go over a simple example. We will use [z3](https://github.com/Z3Prover/z3) as this is the most used SMT checker for automatic analysis tools for Solidity.
 
@@ -44,7 +89,7 @@ function specialAdd(int256 a, int256 b) returns (int256 c) {
 }
 ```
 
-#### Checking if the requirement can hold
+### Checking if the requirement can hold
 
 We can first check if the requirement (`a + b > 100`) can hold at al. This can be done with the following checks in z3. The syntax used is [SMTLib](https://microsoft.github.io/z3guide/docs/logic/basiccommands).
 
@@ -75,7 +120,7 @@ sat
 
 However, now we only know that it is possible. We don't know yet if `a + b` is always more than 100.
 
-#### Checking if the requirement will always hold
+### Checking if the requirement will always hold
 
 To check if our requirement always holds we will check for the **negation** of our requirement. Meaning that we are checking if the requirement can be violated. The only change is that we put `(not ...)` around our requirement.
 
@@ -106,7 +151,7 @@ This example shows that SMT tools can be used to check if logical requirements c
 
 For more complex systems you would generally not write these rules in z3 manually, but instead, generate them using a higher-level tool.
 
-### Example: Symbolic execution
+## Symbolic execution
 
 Consider the function `sumIsEven()`.
 
@@ -126,7 +171,7 @@ First, let's make the difference between **concrete execution** and **symbolic e
 
 So when a variable would be used in a branch to determine which path to take, the symbolic execution would take both branches. When one of the branches would then throw an error, the tool would determine a concrete value (get a counter-example using an SMT checker) that would cause the program to take this branch.
 
-#### Example
+### Example
 
 In the example below this process can be seen in action. The program has multiple possible paths starting from the top. the variables `x` and `y` are assigned the symbolic values `X` and `Y` respectively. Each time that the symbolic execution learns something about a variable it will be stored in the Path Condition (`PC`) for that particular path. One branch in the image below knows that the symbolic values meet `X <= Y` in that branch. While in the other branch the program knows that `X > Y` holds. This is simply based on the condition required for that path (the if-statement).
 
@@ -149,13 +194,15 @@ Determining if this branch can be reached is done with an SMT checker. We saw in
 
 Source: https://www.researchgate.net/publication/314950910_Software_Static_Energy_Modeling_for_Modern_Processors
 
-### Constraint Horn Clauses (CHC)
+## Static analysis
+
+## Constraint Horn Clauses (CHC)
 
 A set of CHC described the program with logic. It still uses an SMT checker as the backend.
 
 For more information see https://www.cs.fsu.edu/~grigory/hornspec.pdf with the related presentation https://www.youtube.com/watch?v=kbtnye_q3PA.
 
-### Matching logic
+## Matching logic
 
 Docs: http://www.matching-logic.org/
 
@@ -165,7 +212,7 @@ Matching logic is used as the backbone of the K-framework on which KEVM is built
 
 The main benefit of working with bytecode is that you are working with the code which will be deployed. You are not dependent on potential errors in the compiler.
 
-# More sources
+## More sources
 
 - [Ethereum Formal Verification Blog](https://fv.ethereum.org/)
 - [Formal Systems Laboratory](https://fsl.cs.illinois.edu/)
