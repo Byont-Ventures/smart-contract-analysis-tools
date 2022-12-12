@@ -13,6 +13,7 @@
     - [Limitations](#limitations)
     - [Symbolic executions tools for Solidity](#symbolic-executions-tools-for-solidity)
   - [Static analysis](#static-analysis)
+    - [Static analysis tools for Solidity](#static-analysis-tools-for-solidity)
   - [How Byont uses these techniques](#how-byont-uses-these-techniques)
   - [More sources](#more-sources)
 
@@ -204,15 +205,43 @@ Note that these limitations have to do with the symbolic execution. Not with SMT
 
 ### Symbolic executions tools for Solidity
 
-TODO
+There are multiple existing tools that perform symbolic execution such as:
+
+- [Mythril](https://github.com/ConsenSys/mythril)
+- [hevm](https://github.com/ethereum/hevm)
+- [Manticore](https://github.com/trailofbits/manticore)
+- [KEVM](https://github.com/runtimeverification/evm-semantics)
+
+TODO: How these tools deal with the mentioned limitations.
 
 ## Static analysis
 
-TODO
+Whereas symbolic execution 'runs' the code, static analyses only look at the code. This doesn't mean that static analysis tools are less powerful or less useful. But it does mean that, in general, they will finish quicker than symbolic execution.
+
+The main goal of static analysis tools is to find patterns in the code that are not conforming to a certain standard, or that are known to have a high change of contributing to a bug in the code.
+
+For Solidity one such pattern is for example updating a variable, used to check if an external call has to be called, only after the external call. This is a classic setup for re-entrancy attacks.
+
+But [Prettier](https://prettier.io/) (the code formatter) is also a static analysis tool. It looks at your code and finds violations of rules defined in the configuration of prettier.
+
+### Static analysis tools for Solidity
+
+There are multiple existing tools that perform static analysis such as:
+
+- [Slither](https://github.com/crytic/slither)
+- [remix-analyzer](https://github.com/ethereum/remix-project/tree/master/libs/remix-analyzer#how-to-use)
 
 ## How Byont uses these techniques
 
-At Byont we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of slither, SMTChecker and Mythril and KEVM. It is important to use multiple tools, since none of then can will find all problems. This is not because the tools are not good, because they are good. It's just that their methods of implementing the analysis techniques can focus on other aspects.
+At Byont we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of Slither, solc's SMTChecker, Mythril and KEVM. It is important to use multiple tools, since none of them will find all problems on its own. This is not because the tools are not good enough (because they are good). It's just that their methods of implementing the analysis techniques can focus on different aspects.
+
+That's why analyzing and combining the results is the best option. This is also the goal of our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project.
+
+It would of course be super interesting to create our own symbolic execution or static analysis tool, but that would be a fool's errand and would undermine the tremendous effort and research that has gone into the existing tools and theories.
+
+Therefore we will gratefully make use of the existing tools and add value by analyzing the results of the tools to get a more complete report.
+
+This project aims for be easily integrated into your own solidity project. After execution our tool, you will receive a report highlighting the potential problems in your contract(s) and giving potential solutions.
 
 <!-- ## Constraint Horn Clauses (CHC)
 
