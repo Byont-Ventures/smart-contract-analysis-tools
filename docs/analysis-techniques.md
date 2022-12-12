@@ -9,11 +9,7 @@
     - [Checking if the requirement can hold](#checking-if-the-requirement-can-hold)
     - [Checking if the requirement will always hold](#checking-if-the-requirement-will-always-hold)
   - [Symbolic execution](#symbolic-execution)
-    - [Example](#example)
   - [Static analysis](#static-analysis)
-  - [Constraint Horn Clauses (CHC)](#constraint-horn-clauses-chc)
-  - [Matching logic](#matching-logic)
-  - [Verifying source code vs bytecode](#verifying-source-code-vs-bytecode)
   - [More sources](#more-sources)
 
 ## Unit testing
@@ -81,7 +77,7 @@ For the example lets say that we have integers `a` and `b` with the following co
 
 In Solidity this could look like the code below.
 
-Note that the assumptions and requirements can originate from knowledge about the system in which the function is used, while the function itself doesn't have this knowledge explicitly.
+Note that the assumptions and requirements can originate from knowledge about the system in which the function is used, while the function itself doesn't have this knowledge explicitly. The the function might be fine when using in the system, but not when using as a self-containing function.
 
 ```Solidity
 function specialAdd(int256 a, int256 b) returns (int256 c) {
@@ -161,71 +157,38 @@ For more complex systems you would generally not write these rules in z3 manuall
 
 ## Symbolic execution
 
-Consider the function `sumIsEven()`.
-
-```Solidity
-function sumIsEven(uint256 a, uint256 b) returns (bool isEven) {
-    uint256 sum = a + b;
-    isEven = (sum % 2 == 0);
-}
-```
+Consider the function `specialAdd()` from the SMT example.
 
 First, let's make the difference between **concrete execution** and **symbolic execution** clear.
 
-- **Concrete execution:** the parameters `a` and `b` to `sumIsEven()` would be assigned actual values (like `4` and `13`). The variable `sum` would be a concrete value (the result of `a + b`, for exampl,e `4 + 13 = 17`) and the function would return **either** `true` or `false`.
-- **Symbolic execution:** the execution assigns the parameter `a` the symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `sum` would now be assigned the symbolic value `A + B`. This can't be simplified due to `A` and `B` being symbolic. Since `sum % 2 == 0` is an if-statement in disguise (it returns either `true` or `false`), the execution splits into two branches. One where `isEven = true` and one where `isEven = false`. The execution now checks both branches further. A more visual example of this flow can be found below.
+- **Concrete execution:** the parameters `a` and `b` to `specialAdd()` would be assigned actual values (like `45` and `13`). The variable `c` would be a concrete value (the result of `a + b`, for example `45 + 13 = 58`) and the function would **either** fail the `assert()` or not (in this example it would fail due to `58 <= 100`).
+- **Symbolic execution:** the execution assigns the parameter `a` the symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `c` would now be assigned the symbolic value `A + B`. This can't be simplified due to `A` and `B` being symbolic. Since the operation `c > 100` (which is actually `A + B > 100`) is an if-statement in disguise, the symbolic executor will 'take' both branches. One of these branches will have the failing assert. The symbolic executor would now first check if this branch path is reachable. If it is, it can find a concrete counter-example.
 
-So when a variable is used in a branch to determine which path to take, the symbolic execution would 'take both' branches. When one of the branches would then throw an error, the tool would determine a concrete value (get a counter-example using an SMT checker) that would cause the program to take this branch.
-
-### Example
-
-In the example below this process can be seen in action. The program has multiple possible paths starting from the top. the variables `x` and `y` are assigned the symbolic values `X` and `Y` respectively. Each time that the symbolic execution learns something about a variable it will be stored in the Path Condition (`PC`) for that particular path. One branch in the image below knows that the symbolic values meet `X <= Y` in that branch. While in the other branch the program knows that `X > Y` holds. This is simply based on the condition required for that path (the if-statement).
-
-In between the two if-statements, the symbolic values are used for some arithmetic which is again done symbolically. The operations swap the assigned values of `x` and `y`. In the end, the variable `x` is equal to the symbolic value `Y` while variable `y` equals the symbolic value `X`.
-
-The second if-statement than checks if `x` (now with symbolic value `Y`) is greater than `y` (now with symbolic value `X`). There is one path that has a failing assert (the path where `x > y`). The path condition (`PC`) there is `X > Y && Y > X`. Note that the left side of the `&&` is from the first branch while the right side is from the second branch.
-
-```solidity
-int256 x;
-int256 y;
-
-if (x > y) {
-    x = x + y;
-    y = x - y;
-    x = x - y;
-
-    if (x > y) {
-        assert(false);
-    }
-}
-```
+During symbolic execution a Path Condition (`PC`) is being kept track of. Every time that a branch is taken, the condition to take that path (so the condition of the if-statement) is added to the `PC`. In the beginning there is only one branch and thus initially `PC:true` holds.
 
 ```mermaid
+%%{ init: { 'flowchart': { 'curve': 'bump' } } }%%
 flowchart TB
-    A["[PC:true] x = X, y = Y"] ---> B{"[PC:true] X > Y"}
-    B ---|false| C["[PC:(X <= Y)] END"]
-    B ---|true| D["[PC:(X > Y)] x = X + Y\n[PC:(X > Y)] y = X + Y - Y = X\n[PC:(X > Y)] y = X + Y - X = Y"]
-    D ---> E{"[PC:(X > Y)] Y > X"}
-    E ---|false| F["[PC:(X > Y) && (Y <= X)] END"]
-    E ---|true| G["[PC:(X > Y) && (Y > X)] END"]
+    A("[PC:true] a = A, b = B") ---> B("[PC:true] A > 15 ?")
+    B ---|false| C("[PC:(A <= 15)) END")
+    B ---|true| D("[PC:(A > 15)] c = A + B")
+    D ---> E("[PC:(A > 15)] A + B > 100 (c > 100) ?")
+    E ---|false| F("[PC:(A > 15) && (A + B <= 100)] END")
+    E ---|true| G("[PC:(A > 15) && (A + B > 100)] END")
+
+    classDef blockStyleNormal fill:#C5EE53, stroke:#333;
+    classDef blockStyleFailing fill:#eb3636, stroke:#333;
+    class A,B,C,D,E,G blockStyleNormal;
+    class F blockStyleFailing;
 ```
 
-Source: https://www.researchgate.net/publication/314950910_Software_Static_Energy_Modeling_for_Modern_Processors
+As mentioned in the SMT section, SMT is used in symbolic execution. It does this is multiple places. It is used during the symbolic execution to check if a path is still of interest (and this needs to be kept in memory) or if it can be pruned (removed from memory to save on computation and memory). In this example the first false branch with `[PC:(A <= 15)]` that represents the failing `require()` is not of interest as nothing is written to storage and can be pruned.
 
-Determining if this branch can be reached is done with an SMT checker. We saw in the example of the SMT checker already how to do simple checks in z3. Running the following code in the [online tool](https://microsoft.github.io/z3guide/playground/Freeform%20Editing) results in `unsat`. Meaning that the path is not reachable and thus we know that the loop does what it is expected to do (swapping `x` and `y` to not reach the failing assert).
-
-```z3
-(declare-const X Int)
-(declare-const Y Int)
-
-(assert (and (> X Y) (> Y X)))
-
-(check-sat)
-```
+The path of the failing assert, however, is of interest. As mentioned above, it first needs to be determined if the path is reachable. If so, it will find a concrete counter-example. The `PC` for the failing branch is `(A > 15) && (A + B <= 100)`. This are the excact contraints that we used in the SMT example, so we already know that this `PC` can be satisfied if `A = 16` and `B = 84`. Since the failing assert can be reached, we know that an extra `require()` is needed to make sure that this `PC` becomes unsatisfiable.
 
 ## Static analysis
 
-## Constraint Horn Clauses (CHC)
+<!-- ## Constraint Horn Clauses (CHC)
 
 A set of CHC described the program with logic. It still uses an SMT checker as the backend.
 
@@ -239,7 +202,7 @@ Matching logic is used as the backbone of the K-framework on which KEVM is built
 
 ## Verifying source code vs bytecode
 
-The main benefit of working with bytecode is that you are working with the code which will be deployed. You are not dependent on potential errors in the compiler.
+The main benefit of working with bytecode is that you are working with the code which will be deployed. You are not dependent on potential errors in the compiler. -->
 
 ## More sources
 
