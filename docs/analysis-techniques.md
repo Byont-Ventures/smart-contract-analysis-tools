@@ -9,7 +9,11 @@
     - [Checking if the requirement can hold](#checking-if-the-requirement-can-hold)
     - [Checking if the requirement will always hold](#checking-if-the-requirement-will-always-hold)
   - [Symbolic execution](#symbolic-execution)
+    - [Introduction by example](#introduction-by-example)
+    - [Limitations](#limitations)
+    - [Symbolic executions tools for Solidity](#symbolic-executions-tools-for-solidity)
   - [Static analysis](#static-analysis)
+  - [How Byont uses these techniques](#how-byont-uses-these-techniques)
   - [More sources](#more-sources)
 
 ## Unit testing
@@ -157,6 +161,8 @@ For more complex systems you would generally not write these rules in z3 manuall
 
 ## Symbolic execution
 
+### Introduction by example
+
 Consider the function `specialAdd()` from the SMT example.
 
 First, let's make the difference between **concrete execution** and **symbolic execution** clear.
@@ -186,7 +192,27 @@ As mentioned in the SMT section, SMT is used in symbolic execution. It does this
 
 The path of the failing assert, however, is of interest. As mentioned above, it first needs to be determined if the path is reachable. If so, it will find a concrete counter-example. The `PC` for the failing branch is `(A > 15) && (A + B <= 100)`. This are the excact contraints that we used in the SMT example, so we already know that this `PC` can be satisfied if `A = 16` and `B = 84`. Since the failing assert can be reached, we know that an extra `require()` is needed to make sure that this `PC` becomes unsatisfiable.
 
+### Limitations
+
+The `specialAdd()` function is of course a really simple function. It doesn't interact with state variables, it doesn't call other local function, and also doesn't call external functions.
+
+It gets more interesting when these things do happen. If a local function is called it can still be relatively easy to make this function inline. But what if this function is recursive (unlikely in a smart-contract, but possible)? Or what if the function is self-containing (like `specialAdd()`) but it makes use of a loop of which the loop bound it determined by an argument to the function. Or what if the function calls an external function of an interface and we don't have the code of the implementation?
+
+This means that we the symbolic execution has to have some trade-offs. For example only looping up to a certain amount when dealing with parameter-determined loop bounds. When an external call is done of which we don't have the code, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and return. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function.
+
+Note that these limitations have to do with the symbolic execution. Not with SMT. SMT is simply the tools to help with (logical) constraints.
+
+### Symbolic executions tools for Solidity
+
+TODO
+
 ## Static analysis
+
+TODO
+
+## How Byont uses these techniques
+
+At Byont we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of slither, SMTChecker and Mythril and KEVM. It is important to use multiple tools, since none of then can will find all problems. This is not because the tools are not good, because they are good. It's just that their methods of implementing the analysis techniques can focus on other aspects.
 
 <!-- ## Constraint Horn Clauses (CHC)
 
