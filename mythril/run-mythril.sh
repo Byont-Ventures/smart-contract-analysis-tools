@@ -42,7 +42,7 @@ docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "     \
         --asm                                                       \
         --bin-runtime                                               \
         --overwrite                                                 \
-        /prj/src/smart-contracts/${contractName}.sol" 2>&1 | tee -a ${outputFile}
+        /prj/${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}
 
 echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}    
