@@ -212,7 +212,19 @@ There are multiple existing tools that perform symbolic execution such as:
 - [Manticore](https://github.com/trailofbits/manticore)
 - [KEVM](https://github.com/runtimeverification/evm-semantics)
 
-TODO: How these tools deal with the mentioned limitations.
+Each tool will deal in a different way to the above mentioned limiations. Mythril will for example report [SWC-107](https://swcregistry.io/docs/SWC-107) re-entrancy [original Mythrils docs](https://github.com/muellerberndt/smashing-smart-contracts/blob/master/smashing-smart-contracts-1of1.pdf).
+
+The original Mythril docs state the following on page (43):
+
+> The following is Mythril's strategy for detecting potential re-entrancy
+> bugs:
+>
+> 1. Detect all message calls to user-supplied addresses that also forward
+>    gas. Note that Solidity's send() and transfer() functions set call gas
+>    to only 2,300; this setting prevents re-entrancy attacks.
+> 2. If an external call to an untrusted address is detected, analyze the
+>    control flow graph for possible state changes that occur after the
+>    call returns. Generate a warning if a state change is detected.
 
 ## Static analysis
 
@@ -265,3 +277,4 @@ The main benefit of working with bytecode is that you are working with the code 
 - [Formal Systems Laboratory](https://fsl.cs.illinois.edu/)
 - [A list of formal verification tools for ethereum](https://github.com/leonardoalt/ethereum_formal_verification_overview)
 - [Smart contract vulnerabilities](https://hacken.io/discover/smart-contract-vulnerabilities/)
+<!-- - [asd](https://arxiv.org/pdf/1911.00570.pdf) -->
