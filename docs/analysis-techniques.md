@@ -12,8 +12,9 @@
     - [6.1 Introduction by example](#61-introduction-by-example)
     - [6.2 Limitations](#62-limitations)
   - [7 Static analysis](#7-static-analysis)
-  - [8 How Byont uses these techniques](#8-how-byont-uses-these-techniques)
-  - [9 Follow up](#9-follow-up)
+  - [8 A note of formal verification](#8-a-note-of-formal-verification)
+  - [9 How Byont uses these techniques](#9-how-byont-uses-these-techniques)
+  - [10 Follow up](#10-follow-up)
   - [More sources](#more-sources)
 
 ## 1 Unit testing
@@ -43,6 +44,8 @@ If this function could be naively tested, a test could be created to only check 
 ## 2 Fuzzing (property testing)
 
 Another technique is to using fuzzing on your unit tests. Fuzzing is also called property-testing. This is because instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the type of course). So now you really need to think of what the behavior is instead of what the result should be. The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework has this built-in.
+
+Fuzzing can be either very simple by using a new (random) input for each new fuzz run, or more complex by combining it with techniques such as symbolic-execution (see the later section on [symbolic execution](#6-symbolic-execution)) to get the Path Conditions within the function under test and determine the next variable such that another path is taken.
 
 Fuzzing, however, still is only running unit-tests. But depending on the quality of the fuzzer, the problems described for the `payOff()` function would likely have been found due to a fuzz parameter being `>= 2^255`.
 
@@ -101,7 +104,7 @@ It is important to note that here we only check that there is **at least one** a
 
 First we introduce the values `a` and `b` using `declare-const`, then we describe the constraints using `assert`. After this, we check if the constraints can be satisfied with `(check-sat)` and get an example assignment with `(get-model)`.
 
-```z3
+```smt-lib
 (declare-const a Int)
 (declare-const b Int)
 
@@ -130,7 +133,7 @@ However, now we only know that it is possible. We don't know yet if `a + b` is a
 
 To check if our requirement always holds we will check for the **negation** of our requirement. Meaning that we are checking if the requirement can be violated. The only change is that we put `(not ...)` around our requirement.
 
-```z3
+```smt-lib
 (declare-const a Int)
 (declare-const b Int)
 
@@ -143,7 +146,7 @@ To check if our requirement always holds we will check for the **negation** of o
 
 Resulting in the following output. This says that the negation of our requirement can be satisfied. Meaning that the requirement is not met. A counter-example to our requirement is given as `a = 16` and `b = 84` resulting in `16 + 84 = 100 <= 100`. The requirement is indeed violated.
 
-```smtlib
+```
 sat
 (
   (define-fun b () Int
@@ -157,7 +160,7 @@ This example showed that SMT tools can be used to check if logical requirements 
 
 So we could says that we need the assumption that `b >= 85` (or in Solidity `require(b >= 85, "b < 85")`).
 
-```
+```smt-lib
 (declare-const a Int)
 (declare-const b Int)
 
@@ -190,14 +193,26 @@ First, let's make the difference between **concrete execution** and **symbolic e
 During symbolic execution a Path Condition (`PC`) is being kept track of. Every time that a branch is taken, the condition to take that path (so the condition of the if-statement) is added to the `PC`. In the beginning there is only one branch and thus initially `PC:true` holds.
 
 ```mermaid
-%%{ init: { 'flowchart': { 'curve': 'bump' } } }%%
+%%{
+    init: {
+            'theme': 'base',
+            'themeVariables': {
+                'fontFamily': 'verdana',
+                'primaryTextColor': '#333'
+            },
+            'flowchart': {
+                'curve': 'basis'
+            }
+    }
+}%%
+
 flowchart TB
     A("[PC:true] a = A, b = B") ---> B("[PC:true] A > 15 ?")
-    B ---|false| C("[PC:(A <= 15)) END")
-    B ---|true| D("[PC:(A > 15)] c = A + B")
+    B --->|false| C("[PC:(A <= 15)) END")
+    B --->|true| D("[PC:(A > 15)] c = A + B")
     D ---> E("[PC:(A > 15)] A + B > 100 (c > 100) ?")
-    E ---|false| F("[PC:(A > 15) && (A + B <= 100)] END")
-    E ---|true| G("[PC:(A > 15) && (A + B > 100)] END")
+    E --->|false| F("[PC:(A > 15) && (A + B <= 100)] END")
+    E --->|true| G("[PC:(A > 15) && (A + B > 100)] END")
 
     classDef blockStyleNormal fill:#C5EE53, stroke:#333;
     classDef blockStyleFailing fill:#eb3636, stroke:#333;
@@ -217,7 +232,7 @@ It gets more interesting when these things do happen. If a local function is cal
 
 Most of these problems come down to the state-space-explosion problem. Meaning that there are simply too much possible paths (and thus states) in the program to cover them all. It would simply take too much resources and execution time.
 
-One of the things that is done to reduce the state-space and resource usage is to prune uninteresting states. Pruning was briefly mentioned in the [symbolic execution example](#introduction-by-example).
+One of the things that is done to reduce the state-space and resource usage is to prune uninteresting states. Pruning was briefly mentioned in the [symbolic execution example](#61-introduction-by-example).
 
 The state-space-explosion problem means that the symbolic execution has to have some trade-offs. For example only looping up to a certain amount when dealing with parameter-determined loop bounds. Or to stop after `n` amount of transactions.
 
@@ -235,9 +250,15 @@ Note that [Prettier](https://prettier.io/) (the code formatter) is also a static
 
 Static analysis can also be used to help reduce the static-analysis state-space-explosion problem. This is because static analysis can be used to get a better picture of the whole code with all its dependencies. Meaning that branches that are not interacting with the state variables can be pruned earlier for example. For Solidity specifically this was presented in the [paper for MPro](https://arxiv.org/pdf/1911.00570.pdf). MPro improved the symbolic execution tool for Solidity called [Mythril](https://github.com/ConsenSys/mythril/tree/develop) with the static analysis tool for Solidity called [Slither](https://github.com/crytic/slither).
 
+## 8 A note of formal verification
+
+The techniques discussed so far will only tell you that the assertions (requirements) that you want to verify in your program are met within the configuration given to the tools. Meaning that if an assertion could be violated after `n` amount of steps, but to reduce the state-space the configuration only allowed `n-1` steps, that the violation might not be found (and this not reported).
+
+Also, the tools can only verify what is given to them, so if the assertion does not cover the associated required in a function design, then the assertion might not be violated while the assertion itself is not correct. Giving a false impression of success.
+
 ---
 
-## 8 How Byont uses these techniques
+## 9 How Byont uses these techniques
 
 At Byont we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of Slither, solc's SMTChecker, Mythril and KEVM. We are currently in the process of optimizing the process of incorporating these tools in our development flow.
 
@@ -251,7 +272,7 @@ Our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-cont
 
 The report will be mostly agnostic to the used tools. As a developer you want to know what the problems are and that false-positives (detected errors that aren't real error) are filtered out. This can only be done by analysing the result of multiple tools in combination with the source code itself.
 
-## 9 Follow up
+## 10 Follow up
 
 In a next article we will demonstrate how our tool can be used with some real-life examples.
 
