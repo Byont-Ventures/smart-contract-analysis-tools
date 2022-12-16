@@ -198,6 +198,7 @@ During symbolic execution a Path Condition (`PC`) is being kept track of. Every 
             'theme': 'base',
             'themeVariables': {
                 'fontFamily': 'verdana',
+                'lineColor': '#999',
                 'primaryTextColor': '#333'
             },
             'flowchart': {
