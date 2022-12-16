@@ -1,23 +1,22 @@
 # Analysis techniques
 
 - [Analysis techniques](#analysis-techniques)
-  - [Unit testing](#unit-testing)
-  - [Fuzzing (property testing)](#fuzzing-property-testing)
-  - [Can we do better?](#can-we-do-better)
-  - [Automated testing](#automated-testing)
-  - [Satisfiable Modulo Theory (SMT)](#satisfiable-modulo-theory-smt)
-    - [Checking if the requirement can hold](#checking-if-the-requirement-can-hold)
-    - [Checking if the requirement will always hold](#checking-if-the-requirement-will-always-hold)
-  - [Symbolic execution](#symbolic-execution)
-    - [Introduction by example](#introduction-by-example)
-    - [Limitations](#limitations)
-    - [Symbolic executions tools for Solidity](#symbolic-executions-tools-for-solidity)
-  - [Static analysis](#static-analysis)
-    - [Static analysis tools for Solidity](#static-analysis-tools-for-solidity)
-  - [How Byont uses these techniques](#how-byont-uses-these-techniques)
+  - [1 Unit testing](#1-unit-testing)
+  - [2 Fuzzing (property testing)](#2-fuzzing-property-testing)
+  - [3 Can we do better?](#3-can-we-do-better)
+  - [4 Automated testing](#4-automated-testing)
+  - [5 Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt)
+    - [5.1 Checking if the requirement can hold](#51-checking-if-the-requirement-can-hold)
+    - [5.2 Checking if the requirement will always hold](#52-checking-if-the-requirement-will-always-hold)
+  - [6 Symbolic execution](#6-symbolic-execution)
+    - [6.1 Introduction by example](#61-introduction-by-example)
+    - [6.2 Limitations](#62-limitations)
+  - [7 Static analysis](#7-static-analysis)
+  - [8 How Byont uses these techniques](#8-how-byont-uses-these-techniques)
+  - [9 Follow up](#9-follow-up)
   - [More sources](#more-sources)
 
-## Unit testing
+## 1 Unit testing
 
 Every developer writes unit-tests for there code (right?). The goal of such a unit test is to test that a single function does what it is expected to do. Or, depending on the usage, testing that a certain function calls other function to perform a local integration test. Sounds easy enough.
 
@@ -41,19 +40,19 @@ A simple fix would be to add `require(amount <= uint256(type(int256).max), "Amou
 
 If this function could be naively tested, a test could be created to only check for valid values of `amount`. This would miss the scenario described above.
 
-## Fuzzing (property testing)
+## 2 Fuzzing (property testing)
 
 Another technique is to using fuzzing on your unit tests. Fuzzing is also called property-testing. This is because instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the type of course). So now you really need to think of what the behavior is instead of what the result should be. The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework has this built-in.
 
 Fuzzing, however, still is only running unit-tests. But depending on the quality of the fuzzer, the problems described for the `payOff()` function would likely have been found due to a fuzz parameter being `>= 2^255`.
 
-## Can we do better?
+## 3 Can we do better?
 
 Unit-testing and fuzzing are great. But they require you to write tests. A lot of tests if you want to have a high coverage of all the possible paths. The more unit-tests you have, the easier it is to do a refactor with confidence. Great! The downside is that a refactor likely also requires some of the tests to be refactored. Not so great!
 
 Unit-tests and fuzzing are needed. No doubt about that. But we could try to make our lives easier by also making use of automated testers and scanners.
 
-## Automated testing
+## 4 Automated testing
 
 A lot of research and development has gone into automated testing and verification tools. What these tools have in common is that they get the source code (preferably with a lot of `assert()` statements to know what to look for) and look if certain failing asserts can be reached or is code-smells can be found.
 
@@ -67,11 +66,11 @@ A technique that uses SMT is [Symbolic execution](#symbolic-execution) that chec
 
 ---
 
-## Satisfiable Modulo Theory (SMT)
+## 5 Satisfiable Modulo Theory (SMT)
 
 To get a better idea of what an SMT checker does, we will go over a simple example. We will use [z3](https://github.com/Z3Prover/z3) as this is the most used SMT checker for automatic analysis tools (for Solidity).
 
-An online z3 runner can be used if you want to try the examples yourself: https://microsoft.github.io/z3guide/playground/Freeform%20Editing
+**An online z3 runner can be used if you want to try the examples yourself:** https://microsoft.github.io/z3guide/playground/Freeform%20Editing
 
 Please note that SMT is a general tool and can be used for more that only software languages. The SMT solver simply tries to find a satisfiable assignment for a set of constraints (assumptions and requirements).
 
@@ -94,7 +93,7 @@ function specialAdd(int256 a, int256 b) returns (int256 c) {
 }
 ```
 
-### Checking if the requirement can hold
+### 5.1 Checking if the requirement can hold
 
 We can first check if the requirement (`a + b > 100`) can hold at al. This can be done with the checks as shown below in z3. The syntax used is [SMTLib](https://microsoft.github.io/z3guide/docs/logic/basiccommands). For this example it is enough to know that SMTLib uses the format `(operation arg1 arg2 ... argn)`. Meaning that `(+ a b)` represents `a + b`.
 
@@ -127,7 +126,7 @@ sat
 
 However, now we only know that it is possible. We don't know yet if `a + b` is always more than 100. This approach can be compared to testing only the happy-flow when writing unit-tests. We need to check if the requirement can be violated instead.
 
-### Checking if the requirement will always hold
+### 5.2 Checking if the requirement will always hold
 
 To check if our requirement always holds we will check for the **negation** of our requirement. Meaning that we are checking if the requirement can be violated. The only change is that we put `(not ...)` around our requirement.
 
@@ -144,7 +143,7 @@ To check if our requirement always holds we will check for the **negation** of o
 
 Resulting in the following output. This says that the negation of our requirement can be satisfied. Meaning that the requirement is not met. A counter-example to our requirement is given as `a = 16` and `b = 84` resulting in `16 + 84 = 100 <= 100`. The requirement is indeed violated.
 
-```
+```smtlib
 sat
 (
   (define-fun b () Int
@@ -156,13 +155,30 @@ sat
 
 This example showed that SMT tools can be used to check if logical requirements can be violated and that they can give a counter-example if it is violated.
 
+So we could says that we need the assumption that `b >= 85` (or in Solidity `require(b >= 85, "b < 85")`).
+
+```
+(declare-const a Int)
+(declare-const b Int)
+
+(assert (> a 15))
+(assert (>= b 85))
+(assert (not (> (+ a b) 100)))
+
+(check-sat)
+```
+
+```
+unsat
+```
+
+This results in `unsat`, meaning that `a + b <= 100` can not hold, i.e. the assert is the code will always hold. Note that the above doesn't have `(get-model)`, simply because the model can't be satisfied.
+
 For more complex systems you would generally not write these rules in z3 manually, but instead, generate them using a higher-level tool. More often SMT is part of more advanced tooling like **symbolic execution**. The example below which describe this.
 
----
+## 6 Symbolic execution
 
-## Symbolic execution
-
-### Introduction by example
+### 6.1 Introduction by example
 
 Consider the function `specialAdd()` from the SMT example.
 
@@ -193,67 +209,51 @@ As mentioned in the SMT section, SMT is used in symbolic execution. It does this
 
 The path of the failing assert, however, is of interest. As mentioned above, it first needs to be determined if the path is reachable. If so, it will find a concrete counter-example. The `PC` for the failing branch is `(A > 15) && (A + B <= 100)`. This are the excact contraints that we used in the SMT example, so we already know that this `PC` can be satisfied if `A = 16` and `B = 84`. Since the failing assert can be reached, we know that an extra `require()` is needed to make sure that this `PC` becomes unsatisfiable.
 
-### Limitations
+### 6.2 Limitations
 
 The `specialAdd()` function is of course a really simple function. It doesn't interact with state variables, it doesn't call other local function, and also doesn't call external functions.
 
-It gets more interesting when these things do happen. If a local function is called it can still be relatively easy to make this function inline. But what if this function is recursive (unlikely in a smart-contract, but possible)? Or what if the function is self-containing (like `specialAdd()`) but it makes use of a loop of which the loop bound it determined by an argument to the function. Or what if the function calls an external function of an interface and we don't have the code of the implementation?
+It gets more interesting when these things do happen. If a local function is called there isn't really a problem yet. But what if this function is recursive (unlikely in a smart-contract, but possible)? Or what if the function is self-containing (like `specialAdd()`) but it makes use of a loop of which the loop bound it determined by an argument to the function. Also, the symbolic execution graph shown above only shows the flow of a single function. But what is we want to discover assert violations that can only happen after multiple transactions and/or calls have been performed.
 
-This means that we the symbolic execution has to have some trade-offs. For example only looping up to a certain amount when dealing with parameter-determined loop bounds. When an external call is done of which we don't have the code, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and return. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function.
+Most of these problems come down to the state-space-explosion problem. Meaning that there are simply too much possible paths (and thus states) in the program to cover them all. It would simply take too much resources and execution time.
 
-Note that these limitations have to do with the symbolic execution. Not with SMT. SMT is simply the tools to help with (logical) constraints.
+One of the things that is done to reduce the state-space and resource usage is to prune uninteresting states. Pruning was briefly mentioned in the [symbolic execution example](#introduction-by-example).
 
-### Symbolic executions tools for Solidity
+The state-space-explosion problem means that the symbolic execution has to have some trade-offs. For example only looping up to a certain amount when dealing with parameter-determined loop bounds. Or to stop after `n` amount of transactions.
 
-There are multiple existing tools that perform symbolic execution such as:
+What if the function calls an external function of an interface and we don't have the code of the implementation? In this case, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and say that symbolic execution is not possible in this case. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function. Or something in between.
 
-- [Mythril](https://github.com/ConsenSys/mythril)
-- [hevm](https://github.com/ethereum/hevm)
-- [Manticore](https://github.com/trailofbits/manticore)
-- [KEVM](https://github.com/runtimeverification/evm-semantics)
+## 7 Static analysis
 
-Each tool will deal in a different way to the above mentioned limiations. Mythril will for example report [SWC-107](https://swcregistry.io/docs/SWC-107) re-entrancy [original Mythrils docs](https://github.com/muellerberndt/smashing-smart-contracts/blob/master/smashing-smart-contracts-1of1.pdf).
+Whereas symbolic execution **runs** the code (be it with symbolic values), static analyses only **looks** at the code. This doesn't mean that static analysis tools are less powerful or less useful (because they aren't). But it does mean that, in general, they will finish quicker than symbolic execution.
 
-The original Mythril docs state the following on page (43):
-
-> The following is Mythril's strategy for detecting potential re-entrancy
-> bugs:
->
-> 1. Detect all message calls to user-supplied addresses that also forward
->    gas. Note that Solidity's send() and transfer() functions set call gas
->    to only 2,300; this setting prevents re-entrancy attacks.
-> 2. If an external call to an untrusted address is detected, analyze the
->    control flow graph for possible state changes that occur after the
->    call returns. Generate a warning if a state change is detected.
-
-## Static analysis
-
-Whereas symbolic execution 'runs' the code, static analyses only look at the code. This doesn't mean that static analysis tools are less powerful or less useful. But it does mean that, in general, they will finish quicker than symbolic execution.
-
-The main goal of static analysis tools is to find patterns in the code that are not conforming to a certain standard, or that are known to have a high change of contributing to a bug in the code.
+The main goal of static analysis tools is to find patterns in the code that are not conforming to a certain standard, or that are known to have a high chance of contributing to a bug in the code. Another thing is that is could, for example, find dead code by looking where function and variables are used in the code.
 
 For Solidity one such pattern is for example updating a variable, used to check if an external call has to be called, only after the external call. This is a classic setup for re-entrancy attacks.
 
-But [Prettier](https://prettier.io/) (the code formatter) is also a static analysis tool. It looks at your code and finds violations of rules defined in the configuration of prettier.
+Note that [Prettier](https://prettier.io/) (the code formatter) is also a static analysis tool. It looks at your code and finds violations of rules defined in the configuration of prettier.
 
-### Static analysis tools for Solidity
+Static analysis can also be used to help reduce the static-analysis state-space-explosion problem. This is because static analysis can be used to get a better picture of the whole code with all its dependencies. Meaning that branches that are not interacting with the state variables can be pruned earlier for example. For Solidity specifically this was presented in the [paper for MPro](https://arxiv.org/pdf/1911.00570.pdf). MPro improved the symbolic execution tool for Solidity called [Mythril](https://github.com/ConsenSys/mythril/tree/develop) with the static analysis tool for Solidity called [Slither](https://github.com/crytic/slither).
 
-There are multiple existing tools that perform static analysis such as:
+---
 
-- [Slither](https://github.com/crytic/slither)
-- [remix-analyzer](https://github.com/ethereum/remix-project/tree/master/libs/remix-analyzer#how-to-use)
+## 8 How Byont uses these techniques
 
-## How Byont uses these techniques
+At Byont we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of Slither, solc's SMTChecker, Mythril and KEVM. We are currently in the process of optimizing the process of incorporating these tools in our development flow.
 
-At Byont we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of Slither, solc's SMTChecker, Mythril and KEVM. It is important to use multiple tools, since none of them will find all problems on its own. This is not because the tools are not good enough (because they are good). It's just that their methods of implementing the analysis techniques can focus on different aspects.
+It is important to use multiple tools, since none of them will find all problems on its own. This is not because the tools are not good enough (because they are good). It's just that their methods of implementing the analysis techniques can focus on different aspects.
 
 That's why analyzing and combining the results is the best option. This is also the goal of our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project.
 
-It would of course be super interesting to create our own symbolic execution or static analysis tool, but that would be a fool's errand and would undermine the tremendous effort and research that has gone into the existing tools and theories.
+It would of course be super interesting to create our own symbolic execution or static analysis tool. However, it is simply not realistic to expect that we can create a tool that is as good or better as the existing tools. This is simply because the amount of research and development that has gone into these tools is too much. What is realistic, however, is to improve existing tools by contributing to the projects.
 
-Therefore we will gratefully make use of the existing tools and add value by analyzing the results of the tools to get a more complete report.
+Our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project initially aims to be easily integrated into your development flow. After execution our tool, you will receive a report highlighting the potential problems in your contract(s) and giving potential solutions.
 
-This project aims for be easily integrated into your own solidity project. After execution our tool, you will receive a report highlighting the potential problems in your contract(s) and giving potential solutions.
+The report will be mostly agnostic to the used tools. As a developer you want to know what the problems are and that false-positives (detected errors that aren't real error) are filtered out. This can only be done by analysing the result of multiple tools in combination with the source code itself.
+
+## 9 Follow up
+
+In a next article we will demonstrate how our tool can be used with some real-life examples.
 
 <!-- ## Constraint Horn Clauses (CHC)
 
@@ -276,5 +276,6 @@ The main benefit of working with bytecode is that you are working with the code 
 - [Ethereum Formal Verification Blog](https://fv.ethereum.org/)
 - [Formal Systems Laboratory](https://fsl.cs.illinois.edu/)
 - [A list of formal verification tools for ethereum](https://github.com/leonardoalt/ethereum_formal_verification_overview)
+- [SWC registry](https://swcregistry.io/)
 - [Smart contract vulnerabilities](https://hacken.io/discover/smart-contract-vulnerabilities/)
-<!-- - [asd](https://arxiv.org/pdf/1911.00570.pdf) -->
+- [Paper for MPro](https://arxiv.org/pdf/1911.00570.pdf)
