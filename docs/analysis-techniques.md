@@ -26,16 +26,16 @@ Let's have a simple function as seen below:
 ```solidity
 mapping(address => int256) credit;
 
-/// @notice Paying off existing dept or adding credit.
+/// @notice Paying off existing debt or adding credit.
 /// @param amount The amount to add to the credit.
 function payOff(uint256 amount) public {
     credit[msg.sender] += int256(amount);
 }
 ```
 
-At first sight, it seems just fine. However, note that an `uint256` is cast to an `int256`. Solidity uses [two's complement](https://nl.wikipedia.org/wiki/Two%27s_complement) for representing negative values. Meaning that where `uint256` has the range [0, $2^{256} - 1$], `int256` has the range [$-2^{255}$, $-2^{255} - 1$].
+At first sight, it seems just fine. However, note that a `uint256` is cast to an `int256`. Solidity uses [two's complement](https://nl.wikipedia.org/wiki/Two%27s_complement) for representing negative values. Meaning that where `uint256` has the range `[0, 2^256 - 1]`, `int256` has the range `[-2^255, -2^255 - 1]`.
 
-So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of $2^{255}$ (`0b100.....`), `msg.sender` would instead have a debt now of $-2^{255} + \text{original credit}$. Oops...
+So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of `2^255` (`0b100.....`), `msg.sender` would instead have a debt now of `-2^255 + original credit`. Oops...
 
 A simple fix would be to add `require(amount <= uint256(type(int256).max), "Amount too large");`. Assuming that an up-to-date solc version is used that checks for overflows.
 
@@ -63,9 +63,9 @@ Note that the term 'source code' was used here. This can either the be actual so
 
 What you will notice when diving more into these different (non-)automated tooling is that there will always be a bit of both, while there are clear differences between techniques and tooling, there is also quite some overlap.
 
-One of the techniques used as the backbone of both non-automated and automated techniques is [Satisfiable Modulo Theory (SMT)](#satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
+One of the techniques used as the backbone of both non-automated and automated techniques is [Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
 
-A technique that uses SMT is [Symbolic execution](#symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
+A technique that uses SMT is [Symbolic execution](#6-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
 
 ---
 
