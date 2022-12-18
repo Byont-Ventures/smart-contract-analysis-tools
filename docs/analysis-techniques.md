@@ -261,15 +261,23 @@ Also, the tools can only verify what is given to them, so if the assertion does 
 
 ## 9 How Byont uses these techniques
 
-At Byont we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of Slither, solc's SMTChecker, Mythril, and KEVM. We are currently in the process of optimizing the process of incorporating these tools in our development flow.
+At Byont, we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of:
+
+- [Slither](https://github.com/crytic/slither) (static-analysis)
+- solc's [SMTChecker](https://docs.soliditylang.org/en/v0.8.17/smtchecker.html) and [Mythril](https://github.com/ConsenSys/mythril/tree/develop) (symbolic execution)
+- [KEVM](https://github.com/runtimeverification/evm-semantics) (symbolic execution and more).
+
+KEVM is built on the [K-framework](https://github.com/runtimeverification/k) from [Runtime Verification](https://runtimeverification.com/).
+
+We are currently in the process of improving the integration of these tools in our development flow.
 
 It is important to use multiple tools since none of them will find all problems on their own. This is not because the tools are not good enough (because they are good). It's just that their methods of implementing the analysis techniques can focus on different aspects.
 
 That's why analyzing and combining the results is the best option. This is also the goal of our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project.
 
-It would of course be super interesting to create our own symbolic execution or static analysis tool. However, it is simply not realistic to expect that we can create a tool that is as good or better as the existing tools. This is simply because the amount of research and development that has gone into these tools is too much. What is realistic, however, is to improve existing tools by contributing to the projects.
+It would of course be super interesting to create our own symbolic execution or static analysis tool. However, it is simply not realistic to expect that we can create a tool that is as good or better as the existing tools. This is simply because the amount of research and development that has gone into these tools is too much. What is realistic, however, is to improve existing tools by contributing to the projects and combining the strength of multiple tools.
 
-Our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project initially aims to be easily integrated into your development flow. After the execution of our tool, you will receive a report highlighting the potential problems in your contract(s) and giving potential solutions.
+Our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project initially aims to be easily integrated into the development flow. After the execution of our tool, you will receive a report highlighting the potential problems in your contract(s) and giving potential solutions.
 
 The report will be mostly agnostic to the used tools. As a developer, you want to know what the problems are and that false positives (detected errors that aren't real errors) are filtered out. This can only be done by analyzing the result of multiple tools in combination with the source code itself.
 
