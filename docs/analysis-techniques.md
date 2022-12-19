@@ -1,6 +1,6 @@
 # Analysis techniques
 
-This article describes several techniques such as fuzzing (property testing), symbolic execution, static analysis, and Satisfiability Modulo Theory (SMT) that can be used as an addition to the more standard unit testing. It is also described these techniques are working together. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. At the end of the article it is described how Byont utilizes these techniques for their report generation.
+This article describes several techniques such as fuzzing (property testing), symbolic execution, static analysis, and Satisfiability Modulo Theory (SMT) that can be used as an addition to the more standard unit testing. It is also described how these techniques are working together and how that benefits their performance. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. The article will also make a quick note on formal verification. At the end of the article, it is described how Byont utilizes these techniques for their report generation.
 
 The layout is as follows:
 
