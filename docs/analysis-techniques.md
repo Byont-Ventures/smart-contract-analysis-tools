@@ -1,21 +1,24 @@
 # Analysis techniques
 
-- [Analysis techniques](#analysis-techniques)
-  - [1 Unit testing](#1-unit-testing)
-  - [2 Fuzzing (property testing)](#2-fuzzing-property-testing)
-  - [3 Can we do better?](#3-can-we-do-better)
-  - [4 Automated testing](#4-automated-testing)
-  - [5 Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt)
-    - [5.1 Checking if the requirement can hold](#51-checking-if-the-requirement-can-hold)
-    - [5.2 Checking if the requirement will always hold](#52-checking-if-the-requirement-will-always-hold)
-  - [6 Symbolic execution](#6-symbolic-execution)
-    - [6.1 Introduction by Example](#61-introduction-by-example)
-    - [6.2 Limitations](#62-limitations)
-  - [7 Static analysis](#7-static-analysis)
-  - [8 A note of formal verification](#8-a-note-of-formal-verification)
-  - [9 How Byont uses these techniques](#9-how-byont-uses-these-techniques)
-  - [10 Follow-up](#10-follow-up)
-  - [More sources](#more-sources)
+This article describes several techniques such as fuzzing (property testing), symbolic execution, static analysis, and Satisfiability Modulo Theory (SMT) that can be used as an addition to the more standard unit testing. It is also described these techniques are working together. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. At the end of the article it is described how Byont utilizes these techniques for their report generation.
+
+The layout is as follows:
+
+- [1 Unit testing](#1-unit-testing)
+- [2 Fuzzing (property testing)](#2-fuzzing-property-testing)
+- [3 Can we do better?](#3-can-we-do-better)
+- [4 Automated testing](#4-automated-testing)
+- [5 Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt)
+  - [5.1 Checking if the requirement can hold](#51-checking-if-the-requirement-can-hold)
+  - [5.2 Checking if the requirement will always hold](#52-checking-if-the-requirement-will-always-hold)
+- [6 Symbolic execution](#6-symbolic-execution)
+  - [6.1 Introduction by Example](#61-introduction-by-example)
+  - [6.2 Limitations](#62-limitations)
+- [7 Static analysis](#7-static-analysis)
+- [8 A note of formal verification](#8-a-note-of-formal-verification)
+- [9 How Byont uses these techniques](#9-how-byont-uses-these-techniques)
+- [10 Follow-up](#10-follow-up)
+- [More resources](#more-resources)
 
 ## 1 Unit testing
 
@@ -301,7 +304,7 @@ Matching logic is used as the backbone of the K-framework on which KEVM is built
 
 The main benefit of working with bytecode is that you are working with the code which will be deployed. You are not dependent on potential errors in the compiler. -->
 
-## More sources
+## More resources
 
 - [Ethereum Formal Verification Blog](https://fv.ethereum.org/)
 - [Formal Systems Laboratory](https://fsl.cs.illinois.edu/)
