@@ -9,7 +9,7 @@ The layout is as follows:
 - [1 Unit testing](#1-unit-testing)
 - [2 Fuzzing (property testing)](#2-fuzzing-property-testing)
 - [3 Can we do better?](#3-can-we-do-better)
-- [4 Automated testing](#4-automated-testing)
+- [4 Automated and semi-automated testing](#4-automated-and-semi-automated-testing)
 - [5 Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt)
   - [5.1 Checking if the requirement can hold](#51-checking-if-the-requirement-can-hold)
   - [5.2 Checking if the requirement will always hold](#52-checking-if-the-requirement-will-always-hold)
@@ -60,17 +60,23 @@ Unit testing and fuzzing are great. But they require you to write tests. A lot o
 
 Unit tests and fuzzing are needed. No doubt about that. But we could try to make our lives easier by also making use of automated testers and scanners.
 
-## 4 Automated testing
+## 4 Automated and semi-automated testing
 
 A lot of research and development has gone into automated testing and verification tools. What these tools have in common is that they get the source code (preferably with a lot of `assert()` statements to know what to look for) and look if certain failing asserts can be reached or if code-smells can be found.
 
-Note that the term 'source code' was used here. This can either the be actual source code or the compiled bytecode. The reason for pointing this out is that there are also non-automated verification techniques. For these techniques, the user has to define a model of how to design works (the design, not the code). Additionally, the properties of this design have to be defined. The verification tooling will then take the model and the properties and check if they can be satisfied.
+The term "source code" refers to the human-readable code that is written by a programmer and is then compiled into machine-readable code (also known as bytecode). However, there are also semi-automated verification techniques that do not require access to the source code. Instead, these techniques rely on a functional design of the project, which outlines how the project should behave.
 
-What you will notice when diving more into these different (non-)automated tooling is that there will always be a bit of both, while there are clear differences between techniques and tooling, there is also quite some overlap.
+For example, in the case of a staking contract, the functional design might specify that users can only increase or decrease their stake once per month, and that the admin can change the interval during which users are allowed to modify their stake. These actions can be translated into a state machine, and the requirements can be formalized using logic. By providing both the state machine and the formalized requirements to a verification tool, it can attempt to create a mathematical proof that the requirements can be satisfied.
 
-One of the techniques used as the backbone of both non-automated and automated techniques is [Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
+If the tool finds that a requirement is not satisfied (e.g., if it discovers that a user can change their stake if the admin lowers the minimum interval), this indicates that the functional design and requirements must be updated. In this case, the requirements might need to be revised to specify that users cannot update their stake for the minimum interval set by the admin.
 
-A technique that uses SMT is [Symbolic execution](#6-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
+What you will notice when diving more into the different (semi-)automated tooling is that there will always be a mix of different techniques.
+
+One of the techniques used as the backbone of both semi-automated and automated techniques is [Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
+
+For example, when looking only at boolean logic, the statement `a && ~b` (where `~` means the negation) is satisfiable by assigning `a = true; b = false`. But `a && ~a` is not satisfiable as is will always result in `false`.
+
+A technique that uses SMT is [Symbolic execution](#6-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. An assertion in Solidity is indicated with the `assert()` function. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
 
 ---
 
