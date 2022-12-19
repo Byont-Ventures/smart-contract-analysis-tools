@@ -1,8 +1,8 @@
-# Analysis techniques
+# Analysis techniques of software
 
 This article describes several techniques such as fuzzing (property testing), symbolic execution, static analysis, and Satisfiability Modulo Theory (SMT) that can be used as an addition to the more standard unit testing. It is also described how these techniques are working together and how that benefits their performance. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. The article will also make a quick note on formal verification. At the end of the article, it is described how Byont utilizes these techniques for their report generation.
 
-The reader is expected to have some knowledge about programming (of smart-contract).
+The reader is expected to have knowledge about programming in Solidity and a basic understanding of logic.
 
 The layout is as follows:
 
@@ -24,9 +24,9 @@ The layout is as follows:
 
 ## 1 Unit testing
 
-Every developer writes unit tests for their code (right?). The goal of such a unit test is to test that a single function does what it is expected to do. Or, depending on the usage, testing that a certain function calls another function to perform a local integration test. Sounds easy enough.
+The goal of a unit tests is to test that a function does what it is expected to do.
 
-Let's have a simple function as seen below:
+Take the `payOff()` function from the code snippet below. Its expected behavior is to increase the credit of a user by a given amount. A user can have a negative credit (hence the mapping in `credit` to `int256`). The user can pay off debt (negative credit) by sending in a value (only positive and thus of type `uint256`) with the `payOff()` function.
 
 ```solidity
 mapping(address => int256) credit;
@@ -36,23 +36,25 @@ mapping(address => int256) credit;
 function payOff(uint256 amount) public {
     credit[msg.sender] += int256(amount);
 }
+
+...
 ```
 
 At first sight, it seems just fine. However, note that a `uint256` is cast to an `int256`. Solidity uses [two's complement](https://nl.wikipedia.org/wiki/Two%27s_complement) for representing negative values. Meaning that where `uint256` has the range `[0, 2^256 - 1]`, `int256` has the range `[-2^255, -2^255 - 1]`.
 
-So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of `2^255` (`0b100.....`), `msg.sender` would instead have a debt now of `-2^255 + original credit`. Oops...
+So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of `2^255` (`0b100.....`), `msg.sender` would instead have a debt now of `-2^255 + original credit`. This is not the intended behavior of the function.
 
-A simple fix would be to add `require(amount <= uint256(type(int256).max), "Amount too large");`. Assuming that an up-to-date solc version is used that checks for overflows.
+If this function would be naively tested with unit tests, a test could be created to only checks for values of `amount` that the developer expects the user to use. This could miss the scenario described above.
 
-If this function could be naively tested, a test could be created to only check for valid values of `amount`. This would miss the scenario described above.
+This is all to say that unit testing is good, as long as the developer created unit tests for all edge cases.
 
 ## 2 Fuzzing (property testing)
 
-Another technique is to use fuzzing on your unit tests. Fuzzing is also called property testing. This is because instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the type of course). So now you really need to think of what the behavior is instead of what the result should be. The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework has this built-in.
+Another technique is to use fuzzing (on unit tests). Fuzzing is also called property testing. This is because instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the type of course). in other words, the test should focus on the behavior of the function rather than the output. The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework for smart-contracts has this built-in.
 
-Fuzzing can be either very simple by using a new (random) input for each new fuzz run, or more complex by combining it with techniques such as symbolic execution (see the later section on [symbolic execution](#6-symbolic-execution)) to get the Path Conditions within the function under test and determine the next variable such that another path is taken.
+Fuzzing can be either very simple by using a new (random) input for each new fuzz run, or more complex, by looking at the source code and previous fuzz runs to come up with the next input. Several fuzz techniques are described in [this article](https://www.coalfire.com/the-coalfire-blog/fuzzing-common-tools-and-techniques?feed=blogs).
 
-Fuzzing, however, still is only running unit tests. But depending on the quality of the fuzzer, the problems described for the `payOff()` function would likely have been found due to a fuzz parameter being `>= 2^255`.
+By using a fuzzer, the problem described for the `payOff()` function would likely have been found due to a fuzz parameter being `>= 2^255`.
 
 ## 3 Can we do better?
 
