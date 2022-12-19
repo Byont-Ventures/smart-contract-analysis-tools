@@ -2,6 +2,8 @@
 
 This article describes several techniques such as fuzzing (property testing), symbolic execution, static analysis, and Satisfiability Modulo Theory (SMT) that can be used as an addition to the more standard unit testing. It is also described how these techniques are working together and how that benefits their performance. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. The article will also make a quick note on formal verification. At the end of the article, it is described how Byont utilizes these techniques for their report generation.
 
+The reader is expected to have some knowledge about programming (of smart-contract).
+
 The layout is as follows:
 
 - [1 Unit testing](#1-unit-testing)
