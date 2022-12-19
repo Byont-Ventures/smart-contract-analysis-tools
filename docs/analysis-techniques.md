@@ -42,15 +42,17 @@ function payOff(uint256 amount) public {
 
 At first sight, it seems just fine. However, note that a `uint256` is cast to an `int256`. Solidity uses [two's complement](https://nl.wikipedia.org/wiki/Two%27s_complement) for representing negative values. Meaning that where `uint256` has the range `[0, 2^256 - 1]`, `int256` has the range `[-2^255, -2^255 - 1]`.
 
-So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of `2^255` (`0b100.....`), `msg.sender` would instead have a debt now of `-2^255 + original credit`. This is not the intended behavior of the function.
+So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of `2^255` (`0b100.....`), `msg.sender` would instead have a debt now of `-2^255 + original credit`. This is because of how two's complement representation works`. This is not the intended behavior of the function.
 
 If this function would be naively tested with unit tests, a test could be created to only checks for values of `amount` that the developer expects the user to use. This could miss the scenario described above.
 
 This is all to say that unit testing is good, as long as the developer created unit tests for all edge cases.
 
-## 2 Fuzzing (property testing)
+## 2 Fuzzing / property testing
 
-Another technique is to use fuzzing (on unit tests). Fuzzing is also called property testing. This is because instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the type of course). in other words, the test should focus on the behavior of the function rather than the output. The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework for smart-contracts has this built-in.
+Another technique is to use fuzzing or property testing. While they are similar, they main difference is the context in which they are used, where property testing is a restricted application of fuzzing. Ted Kaminski (Ph.D.) wrote an [article](https://www.tedinski.com/2018/12/11/fuzzing-and-property-testing.html) about the differences. However, for this article it will just be called fuzzing.
+
+Fuzzing is an improvement to single scenario unit tests because instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the type of course). in other words, the test should focus on the behavior of the function rather than the output. The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework for smart-contracts has this built-in.
 
 Fuzzing can be either very simple by using a new (random) input for each new fuzz run, or more complex, by looking at the source code and previous fuzz runs to come up with the next input. Several fuzz techniques are described in [this article](https://www.coalfire.com/the-coalfire-blog/fuzzing-common-tools-and-techniques?feed=blogs).
 
