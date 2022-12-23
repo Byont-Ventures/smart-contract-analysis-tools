@@ -6,25 +6,27 @@ The reader is expected to have knowledge about programming in Solidity and a bas
 
 The layout is as follows:
 
-- [1 Unit testing](#1-unit-testing)
-- [2 Fuzzing (property testing)](#2-fuzzing-property-testing)
-- [3 Can we do better?](#3-can-we-do-better)
-- [4 Automated and semi-automated testing](#4-automated-and-semi-automated-testing)
-- [5 Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt)
-  - [5.1 Checking if the requirement can hold](#51-checking-if-the-requirement-can-hold)
-  - [5.2 Checking if the requirement will always hold](#52-checking-if-the-requirement-will-always-hold)
-- [6 Symbolic execution](#6-symbolic-execution)
-  - [6.1 Introduction by Example](#61-introduction-by-example)
-  - [6.2 Limitations](#62-limitations)
-- [7 Static analysis](#7-static-analysis)
-- [8 A note of formal verification](#8-a-note-of-formal-verification)
-- [9 How Byont uses these techniques](#9-how-byont-uses-these-techniques)
-- [10 Follow-up](#10-follow-up)
-- [More resources](#more-resources)
+- [Analysis techniques of software](#analysis-techniques-of-software)
+  - [1 Unit testing](#1-unit-testing)
+  - [2 Fuzzing / property testing](#2-fuzzing--property-testing)
+  - [3 Can we do better?](#3-can-we-do-better)
+  - [4 Automated verification](#4-automated-verification)
+  - [5 Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt)
+    - [5.1 Checking if the requirement can hold](#51-checking-if-the-requirement-can-hold)
+    - [5.2 Checking if the requirement will always hold](#52-checking-if-the-requirement-will-always-hold)
+  - [6 Symbolic execution](#6-symbolic-execution)
+    - [6.1 Introduction by Example](#61-introduction-by-example)
+    - [6.2 Limitations](#62-limitations)
+  - [7 Model checking](#7-model-checking)
+  - [8 Static analysis](#8-static-analysis)
+  - [9 A note of formal verification](#9-a-note-of-formal-verification)
+  - [10 How Byont uses these techniques](#10-how-byont-uses-these-techniques)
+  - [11 Follow-up](#11-follow-up)
+  - [More resources](#more-resources)
 
 ## 1 Unit testing
 
-The goal of a unit tests is to test that a function does what it is expected to do.
+The goal of a unit test is to test that a function does what it is expected to do.
 
 Take the `payOff()` function from the code snippet below. Its expected behavior is to increase the credit of a user by a given amount. A user can have a negative credit (hence the mapping in `credit` to `int256`). The user can pay off debt (negative credit) by sending in a value (only positive and thus of type `uint256`) with the `payOff()` function.
 
@@ -66,21 +68,13 @@ Unit testing and fuzzing are great. But they require you to write tests. A lot o
 
 Unit tests and fuzzing are needed. No doubt about that. But we could try to make our lives easier by also making use of automated testers and scanners.
 
-## 4 Automated and semi-automated testing
+## 4 Automated verification
 
-A lot of research and development has gone into automated testing and verification tools. What these tools have in common is that they get the source code (preferably with a lot of `assert()` statements to know what to look for) and look if certain failing asserts can be reached or if code-smells can be found.
+A lot of research and development has gone into automated testing and verification tools and theories. Some of these techniques will be described in the remaining sections of this article. One thing to keep in mind is that each technique does not exclude the other. In contrary, they can be used together to make the verification process better/more efficient.
 
-The term "source code" refers to the human-readable code that is written by a programmer and is then compiled into machine-readable code (also known as bytecode). However, there are also semi-automated verification techniques that do not require access to the source code. Instead, these techniques rely on a functional design of the project, which outlines how the project should behave.
+One of the techniquthes used as the backbone of automated verification is [Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
 
-For example, in the case of a staking contract, the functional design might specify that users can only increase or decrease their stake once per month, and that the admin can change the interval during which users are allowed to modify their stake. These actions can be translated into a state machine, and the requirements can be formalized using logic. By providing both the state machine and the formalized requirements to a verification tool, it can attempt to create a mathematical proof that the requirements can be satisfied.
-
-If the tool finds that a requirement is not satisfied (e.g., if it discovers that a user can change their stake if the admin lowers the minimum interval), this indicates that the functional design and requirements must be updated. In this case, the requirements might need to be revised to specify that users cannot update their stake for the minimum interval set by the admin.
-
-What you will notice when diving more into the different (semi-)automated tooling is that there will always be a mix of different techniques.
-
-One of the techniques used as the backbone of both semi-automated and automated techniques is [Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
-
-For example, when looking only at boolean logic, the statement `a && ~b` (where `~` means the negation) is satisfiable by assigning `a = true; b = false`. But `a && ~a` is not satisfiable as is will always result in `false`.
+For example, when looking only at boolean logic (`true` of `false`), the statement `a && ~b` (where `~` means the negation) is satisfiable by assigning `a = true; b = false` since `true && ~false = true && true = true`. But `a && ~a` is not satisfiable as it will always result in `false` since `false && ~false = false && true = false`.
 
 A technique that uses SMT is [Symbolic execution](#6-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. An assertion in Solidity is indicated with the `assert()` function. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
 
@@ -256,7 +250,17 @@ The state-space-explosion problem means that the symbolic execution has to have 
 
 What if the function calls an external function of an interface and we don't have the code of the implementation? In this case, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and say that symbolic execution is not possible in this case. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function. Or something in between.
 
-## 7 Static analysis
+## 7 Model checking
+
+When verifying a state-machine the assertions to test are mostly related to time-sensitive assertions. For example, if it needs to be verified that function `stepOne()` can never be called before function `stepTwo()`, then we can verify with a state-machine. But also when an invariant (something that needs to always be true) needs to be verified a state-machine can be used. But the nice thing about validating on a state-machine is that is can also be done before writing any code. A state-machine can be created on the functional design for example.
+
+Note that when verifying a generated state-machine from the source code, it needs to be trusted that the generated model is correct. This is not the case when verifying on compiled source code. Since there the verification is done on the bytecode that will also be deployed on the blockchain.
+
+This [paper](https://hal.archives-ouvertes.fr/hal-02103511/document) shows an example of how a smart contract is can be converted to a state-machine. In this paper the tool [NuSMV](https://nusmv.fbk.eu/) is used to model and verify smart-contracts. When using a state-machine to perform verification on, [temporal logic](https://wickstrom.tech/programming/2021/05/03/specifying-state-machines-with-temporal-logic.html) can be used.
+
+In another [paper](https://www.fit.vutbr.cz/research/groups/verifit/tools/muse/bytecode08.pdf), symbolic execution was used to generate a state-machine on which temporal properties could be verified. This shown again that verification techniques don't exclude each other.
+
+## 8 Static analysis
 
 Whereas symbolic execution **runs** the code (be it with symbolic values), static analyses only **looks** at the code. This doesn't mean that static analysis tools are less powerful or less useful (because they aren't). But it does mean that, in general, they will finish quicker than symbolic execution.
 
@@ -268,7 +272,7 @@ Note that [Prettier](https://prettier.io/) (the code formatter) is also a static
 
 Static analysis can also be used to help reduce the static-analysis state-space-explosion problem. This is because static analysis can be used to get a better picture of the whole code with all its dependencies. Meaning that branches that are not interacting with the state variables can be pruned earlier for example. For Solidity specifically, this was presented in the [paper for MPro](https://arxiv.org/pdf/1911.00570.pdf). MPro improved the symbolic execution tool for Solidity called [Mythril](https://github.com/ConsenSys/mythril/tree/develop) with the static analysis tool for Solidity called [Slither](https://github.com/crytic/slither).
 
-## 8 A note of formal verification
+## 9 A note of formal verification
 
 The techniques discussed so far will only tell you that the assertions (requirements) that you want to verify in your program are met within the configuration given to the tools. Meaning that if an assertion could be violated after `n` amount of steps, but to reduce the state-space the configuration is only allowed `n-1` steps, the violation might not be found (and thus not reported).
 
@@ -276,7 +280,7 @@ Also, the tools can only verify what is given to them, so if the assertion does 
 
 ---
 
-## 9 How Byont uses these techniques
+## 10 How Byont uses these techniques
 
 At Byont, we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of:
 
@@ -298,7 +302,7 @@ Our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-cont
 
 The report will be mostly agnostic to the used tools. As a developer, you want to know what the problems are and that false positives (detected errors that aren't real errors) are filtered out. This can only be done by analyzing the result of multiple tools in combination with the source code itself.
 
-## 10 Follow-up
+## 11 Follow-up
 
 In the next article, we will demonstrate how our tool can be used with some real-life examples.
 
@@ -326,3 +330,6 @@ The main benefit of working with bytecode is that you are working with the code 
 - [SWC registry](https://swcregistry.io/)
 - [Smart contract vulnerabilities](https://hacken.io/discover/smart-contract-vulnerabilities/)
 - [Paper for MPro](https://arxiv.org/pdf/1911.00570.pdf)
+- [Smart-contract verification in NuSMV](https://hal.archives-ouvertes.fr/hal-02103511/document)
+- [Temporal logic](https://wickstrom.tech/programming/2021/05/03/specifying-state-machines-with-temporal-logic.html)
+- [Verifying LTL Properties of Bytecode with Symbolic Execution](https://www.fit.vutbr.cz/research/groups/verifit/tools/muse/bytecode08.pdf)
