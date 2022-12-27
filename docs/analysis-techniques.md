@@ -196,8 +196,6 @@ function specialAdd(int256 a, int256 b) returns (int256 c) {
 }
 ```
 
-Note that the assumptions and requirements can originate from knowledge about the system in which the function is used, while the function itself doesn't have this knowledge explicitly.
-
 ### 4.1 Checking if the requirement can hold
 
 It will first be checked if the requirement (`a + b > 100`) can hold at al. Meaning that there is **at least one** satisfiable assignment for `a` and `b`. This can be done with the checks as shown below in z3.
