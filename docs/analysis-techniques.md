@@ -262,7 +262,7 @@ It gets more interesting when these things do happen. If a local function is cal
 
 Most of these problems come down to the state-space-explosion problem. Meaning that there are simply too many possible paths (and thus states) in the program to cover them all. It would simply take too many resources and execution time.
 
-The state-space can blow up quite quickly. Consider the function `getAgeCategory()` below. For each item in the age array, it will return the corresponding age category. This is a simple example, but it already has a state-space of `5^(age.length)`. This is a lot of states to cover. For a family of four persons (for example two children and two parents) there would already be 5^4 = 625 states to cover. For a classroom of 25 students this would be 5^25 = **298.023.223.876.953.125** states to cover. This also shows why symbolic execution (and similar methods) use so much memory.
+The state-space can blow up quite quickly. Consider the function `getAgeCategory()` below. For each item in the age array, it will return the corresponding age category. This is a simple example, but it already has a state-space of `5^(age.length)`. This is a lot of states to cover. For a family of four persons (for example two children and two parents) there would already be 5^4 = 625 states to cover. For a classroom of 25 students this would be 5^25 = 298.023.223.876.953.125 states to cover. This also shows why symbolic execution (and similar methods) use so much memory.
 
 ```Solidity
 enum AGE_CATEGORY { BABY, CHILD, TEEN, ADULT, SENIOR }
@@ -291,23 +291,19 @@ function getAgeCategory(uint256[] memory age) external returns (AGE_CATAGORY[] m
 }
 ```
 
-One of the things that are done to reduce the state-space and resource usage is to prune uninteresting paths. Meaning that paths that, for example, do not change the state of the contract, can be removed from the analysis. This reduces the memory usage and lowers the analysis time by not needing to process these paths further.
+One of the things that is done to reduce the state-space and resource usage is to prune uninteresting paths. Meaning that paths that, for example, do not change the state of the contract, can be removed from the analysis. This reduces the memory usage and lowers the analysis time by not needing to process these paths further.
 
 The state-space-explosion problem means that the symbolic execution has to have some trade-offs. For example, only looping up to a certain amount when dealing with parameter-determined loop bounds. Or to stop after 'n' amount of transactions.
 
-What if the function calls an external function of an interface and we don't have the code of the implementation? In this case, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and say that symbolic execution is not possible in this case. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function. Or something in between.
-
-// TODO: It seems that mythril can sort of do this. Need to test this: https://blog.mythx.io/misc/easy-multi-contract-security-analysis-using-mythril/ (anvil might be useful for this)
+What if the function calls an external function of an interface and we don't have the code of the implementation? In this case, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and say that symbolic execution is not possible in this case. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function. Or something in between. Some tools have a way of dealing with this, but then you do need access to the source code. Mythril makes this possible for example as shown in [this article](https://blog.mythx.io/misc/easy-multi-contract-security-analysis-using-mythril/).
 
 ## 7 Model checking
 
-When verifying a state-machine the assertions to test are mostly related to time-sensitive assertions. For example, if it needs to be verified that function `stepOne()` can never be called before function `stepTwo()`, then we can verify with a state-machine. But also when an invariant (something that needs to always be true) needs to be verified a state-machine can be used. But the nice thing about validating on a state-machine is that is can also be done before writing any code. A state-machine can be created on the functional design for example.
+When verifying a state-machine (sometimes also called the model), the assertions to test are mostly related to time-sensitive assertions. For example, if it needs to be verified that function `stepOne()` can never be called before function `stepTwo()`, then we can verify this with a state-machine. The nice thing about validating on a state-machine is that it can also be done before writing any code. A state-machine can be created based on the functional design for example to see if the design has the desired properties.
 
-Note that when verifying a generated state-machine from the source code, it needs to be trusted that the generated model is correct. This is not the case when verifying on compiled source code. Since there the verification is done on the bytecode that will also be deployed on the blockchain.
+This [paper](https://hal.archives-ouvertes.fr/hal-02103511/document) shows an example of how a smart contract is can be converted to a state-machine. In this paper, the tool [NuSMV](https://nusmv.fbk.eu/) is used to model and verify smart-contracts. When using a state-machine to perform verification on, [temporal logic](https://wickstrom.tech/programming/2021/05/03/specifying-state-machines-with-temporal-logic.html) can be used. Temporal logic allows the user to specify that event `b` should always immediately follow after event `a`, or that event `b` can not happen if event `a` occurred twice, but that it can happen if it occurred once.
 
-This [paper](https://hal.archives-ouvertes.fr/hal-02103511/document) shows an example of how a smart contract is can be converted to a state-machine. In this paper the tool [NuSMV](https://nusmv.fbk.eu/) is used to model and verify smart-contracts. When using a state-machine to perform verification on, [temporal logic](https://wickstrom.tech/programming/2021/05/03/specifying-state-machines-with-temporal-logic.html) can be used.
-
-In another [paper](https://www.fit.vutbr.cz/research/groups/verifit/tools/muse/bytecode08.pdf), symbolic execution was used to generate a state-machine on which temporal properties could be verified. This shown again that verification techniques don't exclude each other.
+In another [paper](https://www.fit.vutbr.cz/research/groups/verifit/tools/muse/bytecode08.pdf), symbolic execution was used to generate a state-machine on which temporal properties could be verified. This makes it possible to do model checking without manually creating a state-machine. This shown again that verification techniques don't exclude each other.
 
 ## 8 Static analysis
 
@@ -315,11 +311,11 @@ Whereas symbolic execution **runs** the code (be it with symbolic values), stati
 
 The main goal of static analysis tools is to find patterns in the code that are not conforming to a certain standard, or that are known to have a high chance of contributing to a bug in the code. Another thing is that it could, for example, find dead code by looking at where functions and variables are used in the code.
 
-For Solidity one such pattern is for example updating a variable, used to check if an external call has to be called, only after the external call. This is a classic setup for re-entrancy attacks.
+For Solidity, one such pattern is for example updating a variable after an external call. This is a classic setup for re-entrancy attacks.
 
 Note that [Prettier](https://prettier.io/) (the code formatter) is also a static analysis tool. It looks at your code and finds violations of rules defined in the configuration of prettier.
 
-Static analysis can also be used to help reduce the static-analysis state-space-explosion problem. This is because static analysis can be used to get a better picture of the whole code with all its dependencies. Meaning that branches that are not interacting with the state variables can be pruned earlier for example. For Solidity specifically, this was presented in the [paper for MPro](https://arxiv.org/pdf/1911.00570.pdf). MPro improved the symbolic execution tool for Solidity called [Mythril](https://github.com/ConsenSys/mythril/tree/develop) with the static analysis tool for Solidity called [Slither](https://github.com/crytic/slither).
+Static analysis can also be used to help reduce the state-space-explosion problem. This is because static analysis analyses the source code and sees dependencies between variables and function. This gained insight can then be used to decide to not symbolically execute certain branches. Meaning that branches that are not updating state variables of the contract can be pruned earlier for example. For Solidity specifically, this was presented in the [paper for MPro](https://arxiv.org/pdf/1911.00570.pdf). MPro improved the symbolic execution tool for Solidity called [Mythril](https://github.com/ConsenSys/mythril/tree/develop) with the static analysis tool for Solidity called [Slither](https://github.com/crytic/slither).
 
 ## 9 A note of formal verification
 
