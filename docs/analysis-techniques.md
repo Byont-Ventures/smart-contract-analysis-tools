@@ -1,12 +1,11 @@
 # Analysis techniques of software
 
-This article describes several techniques such as fuzzing (property testing), symbolic execution, static analysis, and Satisfiability Modulo Theory (SMT) that can be used as an addition to the more standard unit testing. It is also described how these techniques are working together and how that benefits their performance. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. The article will also make a quick note on formal verification. At the end of the article, it is described how Byont utilizes these techniques for their report generation.
-
-The reader is expected to have knowledge about programming in Solidity and a basic understanding of logic.
+This article describes several techniques such as fuzzing / property testing, symbolic execution, static analysis, Satisfiability Modulo Theory (SMT) and model checking that can be used as an addition to the more standard unit testing. It is also described how these techniques are working together and how that benefits their performance. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. The article will also make a quick note on formal verification. At the end of the article, it is described how Byont utilizes these techniques for their report generation. The goal of this article is not to make you an expert in all these techniques, but to give you a good understanding of what they are and how they can be used.
 
 The layout is as follows:
 
 - [Analysis techniques of software](#analysis-techniques-of-software)
+  - [0 Pre-requisites](#0-pre-requisites)
   - [1 Unit testing](#1-unit-testing)
   - [2 Fuzzing / property testing](#2-fuzzing--property-testing)
   - [3 Can we do better?](#3-can-we-do-better)
@@ -23,6 +22,10 @@ The layout is as follows:
   - [10 How Byont uses these techniques](#10-how-byont-uses-these-techniques)
   - [11 Follow-up](#11-follow-up)
   - [More resources](#more-resources)
+
+## 0 Pre-requisites
+
+The reader is expected to have knowledge about programming (preferably in Solidity) and a basic understanding of logic. Blockchain and Solidity are used for the context and examples in this article, but the techniques described are not specific to these technologies.
 
 ## 1 Unit testing
 
@@ -64,19 +67,34 @@ By using a fuzzer, the problem described for the `payOff()` function would likel
 
 ## 3 Can we do better?
 
-Unit testing and fuzzing are great. But they require you to write tests. A lot of tests if you want to have high coverage of all the possible paths. The more unit tests you have, the easier it is to do a refactor with confidence. Great! The downside is that a refactor likely also require some of the tests to be refactored. Not so great!
+Unit testing and fuzzing are great. But they require you to write tests. A lot of tests if you want to have high coverage of all the possible paths. The more unit tests you have, the easier it is to do a refactor with confidence. The downside is that a refactor likely also require some of the tests to be refactored.
 
-Unit tests and fuzzing are needed. No doubt about that. But we could try to make our lives easier by also making use of automated testers and scanners.
+Unit tests and fuzzing are needed. No doubt about that. But it's quite hard to cover all the possible paths. And even if the coverage says that all paths are covered, it doesn't mean that all paths are tested. Only that during executions these paths here executed.
+
+Take for example the code below. It's easy to get 100% test coverage, but that doens't mean that the missing zero-check for `b` is found. In this case every decent fuzzer / property testing engine would find this issue, but the point is that 100% test coverage with unit-tests only says so much.
+
+```solidity
+function getAbsoluteRatio(int256 a, int256 b) external view returns (uint256 ratio){
+    ratio = a / b;
+
+    if(ratio < 0){
+        ratio = -ratio;
+    }
+}
+```
 
 ## 4 Automated verification
 
-A lot of research and development has gone into automated testing and verification tools and theories. Some of these techniques will be described in the remaining sections of this article. One thing to keep in mind is that each technique does not exclude the other. In contrary, they can be used together to make the verification process better/more efficient.
+A lot of research and development has gone into automated verification tools and theories. Some of these techniques will be described in the remaining sections of this article. One thing to keep in mind is that each technique does not exclude the other. In contrary, they can be used together to make the verification process better/more efficient.
 
-One of the techniquthes used as the backbone of automated verification is [Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables.
+One of the techniques used as the backbone of automated verification is [Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables. Sometimes this is also called the assignment for this the statement **holds**.
 
-For example, when looking only at boolean logic (`true` of `false`), the statement `a && ~b` (where `~` means the negation) is satisfiable by assigning `a = true; b = false` since `true && ~false = true && true = true`. But `a && ~a` is not satisfiable as it will always result in `false` since `false && ~false = false && true = false`.
+For example, looking only at boolean logic (`true` and `false`):
 
-A technique that uses SMT is [Symbolic execution](#6-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. An assertion in Solidity is indicated with the `assert()` function. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
+- The statement `a && ~b` (where `~` means the negation) is satisfiable by assigning `a = true; b = false`. Since `true && ~false = true && true = true`.
+- But `a && ~a` is not satisfiable as it will always result in `false`. Since if `a = false` `false && ~false = false && true = false`. Similarly, when `a = true` it follows that `true && ~true = true && false = false`.
+
+One of the techniques that uses SMT is [Symbolic execution](#6-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. An assertion in Solidity is indicated with the `assert()` function. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
 
 ---
 
@@ -199,9 +217,9 @@ Consider the function `specialAdd()` from the SMT example.
 First, let's make the difference between **concrete execution** and **symbolic execution** clear.
 
 - **Concrete execution:** the parameters `a` and `b` to `specialAdd()` would be assigned actual values (like `45` and `13`). The variable `c` would be a concrete value (the result of `a + b`, for example, `45 + 13 = 58`), and the function would **either** fail the `assert()` or not (in this example it would fail due to `58 <= 100`).
-- **Symbolic execution:** the execution assigns the parameter `a` the symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `c` would now be assigned the symbolic value `A + B`. This can't be simplified due to `A` and `B` being symbolic. Since the operation `c > 100` (which is actually `A + B > 100`) is an if-statement in disguise, the symbolic executor will 'take' both branches. One of these branches will have the failing assert. The symbolic executor would now first check if this branch is reachable. If it is, it can find a concrete counter-example.
+- **Symbolic execution:** the execution assigns the parameter `a` the symbolic value `A` and assigns to `b` the symbolic value `B`. The variable `c` would now be assigned the symbolic value `A + B`. This can't be simplified due to `A` and `B` being symbolic. Since the operation `c > 100` (which is actually `A + B > 100`) is an if-statement in disguise, the symbolic executor will 'take' both branches. One of these branches will have the failing assert. The symbolic executor would now first check if this branch is reachable. If it is, it can find a concrete counter-example using SMT.
 
-During symbolic execution, a Path Condition (`PC`) is kept track of. Every time that a branch is taken, the condition to take that path (so the condition of the if-statement) is added to the `PC`. In the beginning, there is only one 'branch' and thus initially `PC:true` holds.
+During symbolic execution, a Path Condition (`PC`) is kept track of. Every time that a branch is taken, the condition that is `true` to take that path (so the condition of the if-statement) is added to the `PC`. In the beginning, there is only one 'branch' and thus initially `PC:true` holds.
 
 ```mermaid
 %%{
@@ -232,7 +250,7 @@ flowchart TB
     class F blockStyleFailing;
 ```
 
-As mentioned in the SMT section, SMT is used in symbolic execution. It does this in multiple places. It is used during the symbolic execution to check if a path is still of interest (and thus needs to be kept in memory) or if it can be pruned (removed from memory to save on computation and memory). In this example, the first false branch with `[PC:(A <= 15)]` that represents the failing `require()` is not of interest as nothing is written to storage and can be pruned.
+As mentioned in the SMT section, SMT is used in symbolic execution. It does this in multiple places. It is used during the symbolic execution to check if a path is still of interest (and thus needs to be kept in memory) or if it can be pruned (removed from memory to save on computation and memory). In this example, the first false branch with `[PC:(A <= 15)]` that represents the failing `require()` is not of interest and can be pruned. It is not of interest because nothing has been written to storage at this time.
 
 The path of the failing assert, however, is of interest. As mentioned above, it first needs to be determined if the path is reachable. If so, it will find a concrete counter-example. The `PC` for the failing branch is `(A > 15) && (A + B <= 100)`. These are the exact constraints that we used in the SMT example, so we already know that this `PC` can be satisfied if `A = 16` and `B = 84`. Since the failing assert can be reached, we know that an extra `require()` is needed to make sure that this `PC` becomes unsatisfiable.
 
@@ -240,9 +258,31 @@ The path of the failing assert, however, is of interest. As mentioned above, it 
 
 The `specialAdd()` function is of course a really simple function. It doesn't interact with state variables, it doesn't call other local functions, and also doesn't call external functions.
 
-It gets more interesting when these things do happen. If a local function is called there isn't really a problem yet. But what if this function is recursive (unlikely in a smart contract, but possible)? Or what if the function is self-containing (like `specialAdd()`) but it makes use of a loop of which the loop bound is determined by an argument to the function? Also, the symbolic execution graph shown above only shows the flow of a single function. But what if we want to discover assert violations that can only happen after multiple transactions and/or calls have been performed?
+It gets more interesting when these things do happen. If a local function is called, there isn't really a problem yet. Since calling a local function is similar to a jump instruction. But what if this function is recursive (unlikely in a smart contract, but possible)? Or what if the function is self-containing (like `specialAdd()`) but it makes use of a loop of which the loop bound is determined by an argument to the function?
 
 Most of these problems come down to the state-space-explosion problem. Meaning that there are simply too many possible paths (and thus states) in the program to cover them all. It would simply take too many resources and execution time.
+
+The state-space can blow up quite quickly. Consider the function `getAgeCategory()` below. For each item in the age array, it will return the corresponding age category. This is a simple example, but it already has a state-space of `5^(age.length)`. This is a lot of states to cover. For a family of four persons (for example two children and two parents) there would already be 5^4 = 625 states to cover. For a classroom of 25 students this would be 5^25 = **298.023.223.876.953.125** states to cover. This also shows why symbolic execution (and similar methods) use so much memory.
+
+```Solidity
+enum AGE_CATEGORY { BABY, CHILD, TEEN, ADULT, SENIOR }
+
+function getAgeCategory(uint256[] memory age) public pure returns (AGE_CATAGORY[] memory catagories) {
+    for(uint256 i = 0; i < age.length; i++) {
+        if (age[i] < 1) {
+            catagories[i] = AGE_CATEGORY.BABY;
+        } else if (age[i] < 13) {
+            catagories[i] = AGE_CATEGORY.CHILD;
+        } else if (age[i] < 20) {
+            catagories[i] = AGE_CATEGORY.TEEN;
+        } else if (age[i] < 65) {
+            catagories[i] = AGE_CATEGORY.ADULT;
+        } else {
+            catagories[i] = AGE_CATEGORY.SENIOR;
+        }
+    }
+}
+```
 
 One of the things that are done to reduce the state-space and resource usage is to prune uninteresting states. Pruning was briefly mentioned in the [symbolic execution example](#61-introduction-by-example).
 
