@@ -337,7 +337,7 @@ flowchart TB
 
 As mentioned in the SMT section, SMT is used in symbolic execution. It does this in multiple places. It is used during the symbolic execution to check if a path is still of interest (and thus needs to be kept in memory) or if it can be pruned (removed from memory to save on computation and memory). In this example, the first false branch with `[PC:(A <= 15)]` that represents the failing `require()` is not of interest and can be pruned. It is not of interest because nothing has been written to storage at this time.
 
-The path of the failing assert, however, is of interest. As mentioned above, it first needs to be determined if the path is reachable. If so, it will find a concrete counter-example. The `PC` for the failing branch is `(A > 15) && (A + B <= 100)`. These are the exact constraints that we used in the SMT example, so we already know that this `PC` can be satisfied if `A = 16` and `B = 84`. Since the failing assert can be reached, we know that an extra `require()` is needed to make sure that this `PC` becomes unsatisfiable.
+The path of the failing assert, however, is of interest. As mentioned above, it first needs to be determined if the path is reachable. If so, it will find a concrete counter-example. The `PC` for the failing branch is `(A > 15) && (A + B <= 100)`. These are the exact constraints that were used in the SMT example, so it is already known that this `PC` can be satisfied if `A = 16` and `B = 84`. Since the failing assert can be reached, its also know that an extra `require(b >= 85)` is needed to make sure that this `PC` becomes unsatisfiable.
 
 ### 5.2 Limitations
 
@@ -347,7 +347,7 @@ It gets more interesting when these things do happen. If a local function is cal
 
 Most of these problems come down to the state-space-explosion problem. Meaning that there are simply too many possible paths (and thus states) in the program to cover them all. It would simply take too many resources and execution time.
 
-The state-space can blow up quite quickly. Consider the function `getAgeCategory()` below. For each item in the age array, it will return the corresponding age category. This is a simple example, but it already has a state-space of `5^(age.length)`. This is a lot of states to cover. For a family of four persons (for example two children and two parents) there would already be 5^4 = 625 states to cover. For a classroom of 25 students this would be 5^25 = 298.023.223.876.953.125 states to cover. This also shows why symbolic execution (and similar methods) use so much memory.
+The state-space can blow up quite quickly. Consider the function `getAgeCategory()` below.
 
 ```Solidity
 enum AGE_CATEGORY { BABY, CHILD, TEEN, ADULT, SENIOR }
@@ -376,11 +376,13 @@ function getAgeCategory(uint256[] memory age) external returns (AGE_CATAGORY[] m
 }
 ```
 
+For each item in the age array, it will return the corresponding age category. This is a simple example, but it already has a state-space of `5^(age.length)`. This is a lot of states to cover. For a family of four persons (for example two children and two parents) there would already be 5^4 = 625 states to cover. For a classroom of 25 students this would be 5^25 = 298.023.223.876.953.125 states to cover. This also shows why symbolic execution (and similar methods) use so much memory.
+
 One of the things that is done to reduce the state-space and resource usage is to prune uninteresting paths. Meaning that paths that, for example, do not change the state of the contract, can be removed from the analysis. This reduces the memory usage and lowers the analysis time by not needing to process these paths further.
 
 The state-space-explosion problem means that the symbolic execution has to have some trade-offs. For example, only looping up to a certain amount when dealing with parameter-determined loop bounds. Or to stop after 'n' amount of transactions.
 
-What if the function calls an external function of an interface and we don't have the code of the implementation? In this case, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and say that symbolic execution is not possible in this case. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function. Or something in between. Some tools have a way of dealing with this, but then you do need access to the source code. Mythril makes this possible for example as shown in [this article](https://blog.mythx.io/misc/easy-multi-contract-security-analysis-using-mythril/).
+What if the function calls an external function of an interface and the source code is not known? In this case, the tool could simply return a random value, or it could simply give up and say that symbolic execution is not possible in this case. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function. Or something in between.
 
 ## 6 Static analysis
 
@@ -392,7 +394,7 @@ More generally, the goal of static analysis tools is to find patterns in the cod
 
 For Solidity, one such pattern is for example updating a variable after an external call. This is a classic setup for re-entrancy attacks.
 
-Static analysis can also be used to help reduce the state-space-explosion problem. This is because static analysis analyses the source code and sees dependencies between variables and function. This gained insight can then be used to decide to not symbolically execute certain branches. Meaning that branches that are not updating state variables of the contract can be pruned earlier for example.
+Static analysis can also be used to help reduce the state-space-explosion problem. This is because static analysis analyses the source code and sees dependencies between variables and function. This gained insight can then be used to decide to not symbolically execute certain branches. Meaning that branches that are not updating state variables of the contract can be pruned earlier.
 
 For Solidity specifically, this was presented in the [paper for MPro](https://arxiv.org/pdf/1911.00570.pdf). MPro improved the symbolic execution tool for Solidity called [Mythril](https://github.com/ConsenSys/mythril/tree/develop) with the static analysis tool for Solidity called [Slither](https://github.com/crytic/slither).
 
@@ -406,7 +408,7 @@ Also, the tools can only verify what is given to them, so if the assertion does 
 
 ## 8 How Byont uses these techniques
 
-At Byont, we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of:
+Byont makes heavy use of Foundry's fuzzing capabilities. Besides that, the following tools are used:
 
 - [Slither](https://github.com/crytic/slither) (static-analysis)
 - solc's [SMTChecker](https://docs.soliditylang.org/en/v0.8.17/smtchecker.html) and [Mythril](https://github.com/ConsenSys/mythril/tree/develop) (symbolic execution)
@@ -414,9 +416,9 @@ At Byont, we make heavy use of Foundry's fuzzing capabilities. Besides that, we 
 
 How these tools work in detail will be discussed in a later article.
 
-We are currently in the process of improving the integration of these tools in our development flow.
+Byont is currently in the process of improving the integration of these tools in it's smart contract development flow.
 
-It is important to use multiple tools since none of them will find all problems on their own. This is not because the tools are not good enough (because they are good). It's just that their methods of implementing the analysis techniques can focus on different aspects. A survey that compared 27 analysis tools can be found in this [paper](https://www.researchgate.net/publication/334786201_A_Survey_of_Tools_for_Analyzing_Ethereum_Smart_Contracts).
+It is important to use multiple tools since none of them will find all problems on their own. This is not because the tools are not good enough. It's just that their methods of implementing the analysis techniques can focus on different aspects. A survey that compared 27 analysis tools can be found in this [paper](https://www.researchgate.net/publication/334786201_A_Survey_of_Tools_for_Analyzing_Ethereum_Smart_Contracts).
 
 That's why analyzing and combining the results is the best option. This is also the goal of Byont's [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project.
 
