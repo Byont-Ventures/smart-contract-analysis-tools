@@ -1,6 +1,6 @@
 # Analysis techniques of software
 
-This article describes several techniques such as fuzzing / property testing, symbolic execution, static analysis, Satisfiability Modulo Theory (SMT) and model checking that can be used as an addition to the more standard unit testing. It is also described how these techniques are working together and how that benefits their performance. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. The article will also make a quick note on formal verification. At the end of the article, it is described how Byont utilizes these techniques for their report generation. The goal of this article is not to make you an expert in all these techniques, but to give you a good understanding of what they are and how they can be used.
+This article describes unit testing, fuzzing / property testing, Satisfiable Modulo Theory (SMT), symbolic execution and static analysis. Each technique is explained by means of examples. The limitations and the therefrom following considerations are described as well. The article will also make a quick note on formal verification. At the end of the article, it is described how Byont utilizes these techniques for their report generation. The goal of this article is not to make the reader an expert in all these techniques, but to give a good understanding of what they are and how they can be used.
 
 The layout is as follows:
 
@@ -8,19 +8,18 @@ The layout is as follows:
   - [0 Pre-requisites](#0-pre-requisites)
   - [1 Unit testing](#1-unit-testing)
   - [2 Fuzzing / property testing](#2-fuzzing--property-testing)
-  - [3 Can we do better?](#3-can-we-do-better)
-  - [4 Automated verification](#4-automated-verification)
-  - [5 Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt)
-    - [5.1 Checking if the requirement can hold](#51-checking-if-the-requirement-can-hold)
-    - [5.2 Checking if the requirement will always hold](#52-checking-if-the-requirement-will-always-hold)
-  - [6 Symbolic execution](#6-symbolic-execution)
-    - [6.1 Introduction by Example](#61-introduction-by-example)
-    - [6.2 Limitations](#62-limitations)
-  - [7 Model checking](#7-model-checking)
-  - [8 Static analysis](#8-static-analysis)
-  - [9 A note of formal verification](#9-a-note-of-formal-verification)
-  - [10 How Byont uses these techniques](#10-how-byont-uses-these-techniques)
-  - [11 Follow-up](#11-follow-up)
+    - [2.1 Fuzzing with Foundry](#21-fuzzing-with-foundry)
+  - [3 Automated verification](#3-automated-verification)
+  - [4 Satisfiable Modulo Theory (SMT)](#4-satisfiable-modulo-theory-smt)
+    - [4.1 Checking if the requirement can hold](#41-checking-if-the-requirement-can-hold)
+    - [4.2 Checking if the requirement will always hold](#42-checking-if-the-requirement-will-always-hold)
+  - [5 Symbolic execution](#5-symbolic-execution)
+    - [5.1 Introduction by Example](#51-introduction-by-example)
+    - [5.2 Limitations](#52-limitations)
+  - [6 Static analysis](#6-static-analysis)
+  - [7 A note of formal verification](#7-a-note-of-formal-verification)
+  - [8 How Byont uses these techniques](#8-how-byont-uses-these-techniques)
+  - [9 Follow-up](#9-follow-up)
   - [More resources](#more-resources)
 
 ## 0 Pre-requisites
@@ -55,25 +54,25 @@ This is all to say that unit testing is good, as long as the developer created u
 
 ## 2 Fuzzing / property testing
 
-Fuzzing / property testing is an improvement to single scenario unit tests. Instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the input type of course). The structure of the unit test might not need to change much. The main difference is that if normally a hardcoded value would be used as the input for the function to test (for example `payOff(4)` for the function above), now a variable will be used that will be assigned a value by the fuzzer (resulting in `payOff(fuzzedAmount`). This might use an input value that triggers an edge-case that wasn't directly seen in the source code by the developer.
+Fuzzing / property testing is an improvement to single scenario unit tests. Instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the input type of course). The structure of the unit test might not need to change much. The main difference is that if normally a hardcoded value would be used as the input for the function to test (for example `payOff(4)` for the function above), now a variable will be used that will be assigned a value by the fuzzer (resulting in `payOff(fuzzedAmount`). The chosen value might triggers an edge-case that wasn't directly seen in the source code by the developer.
 
-Both techniques (fuzzing and property testing) are similar, but the main difference is that property testing is in general a more restricted version of fuzzing where the input and output of the property test are well defined. Ted Kaminski (Ph.D.) wrote an [article](https://www.tedinski.com/2018/12/11/fuzzing-and-property-testing.html) about the differences. Also [this article](https://blog.nelhage.com/post/property-testing-is-fuzzing/) from Nelson Elhage describes a similar difference.
+Both techniques (fuzzing and property testing) are similar, but the main difference is that property testing is in general a more restricted version of fuzzing where the input and output of the property test are defined in the form of unit-style tests. Ted Kaminski (Ph.D.) wrote an [article](https://www.tedinski.com/2018/12/11/fuzzing-and-property-testing.html) about the differences. Also [this article](https://blog.nelhage.com/post/property-testing-is-fuzzing/) from Nelson Elhage describes a similar difference.
 
-The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework is a popular framework that provides fuzzing. While they call it fuzzing, when reading the their actual documentation they talk about property testing. For the rest of this article, the term fuzzing is used since that is also how Foundry advertises its technique.
+The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework is a popular framework for Solidity that provides fuzzing. While they call it fuzzing, when reading the the documentation they talk about property testing. For the rest of this article, the term fuzzing is used since that is also how Foundry advertises the technique.
 
 Fuzzing can be either very simple by using a new (random) input for each new fuzz run, or more complex, by looking at the source code and previous fuzz runs to come up with the next input. Several fuzz techniques are described in [this article](https://www.coalfire.com/the-coalfire-blog/fuzzing-common-tools-and-techniques?feed=blogs).
 
 By using a fuzzer, the problem described for the `payOff()` function would likely have been found due to a fuzz parameter being `>= 2^255`.
 
-## 3 Can we do better?
+### 2.1 Fuzzing with Foundry
 
-Unit testing and fuzzing are great. But they require you to write tests. A lot of tests if you want to have high coverage of all the possible paths. The more unit tests you have, the easier it is to do a refactor with confidence. The downside is that a refactor likely also require some of the tests to be refactored.
-
-Unit tests and fuzzing are needed. No doubt about that. But it's quite hard to cover all the possible paths. And even if the coverage says that all paths are covered, it doesn't mean that all paths are tested. Only that during executions these paths here executed.
-
-Take for example the code below. It's easy to get 100% test coverage, but that doens't mean that the missing zero-check for `b` is found. In this case every decent fuzzer / property testing engine would find this issue, but the point is that 100% test coverage with unit-tests only says so much.
+Take for example the code below. It's easy to get 100% test coverage with unit tests alone, but that doens't mean that the missing zero-check for `b` is found.
 
 ```solidity
+//----------
+// Code
+//----------
+
 function getAbsoluteRatio(int256 a, int256 b) external view returns (uint256 ratio){
     ratio = a / b;
 
@@ -81,24 +80,81 @@ function getAbsoluteRatio(int256 a, int256 b) external view returns (uint256 rat
         ratio = -ratio;
     }
 }
+
+//----------
+// Tests
+//----------
+
+//----------
+// Unit tests
+//
+// 100% coverage with these two unit tests
+
+function test_getAbsoluteRatio_isPositiveIfSignOfParametersAreBothPositive() public {
+    int256 a = 10;
+    int256 b = 5;
+
+    uint256 ratio = getAbsoluteRatio(a, b);
+
+    assertEq(ratio, 2, "Ratio should be 2");
+}
+
+function test_getAbsoluteRatio_isPositiveIfSignOfNumeratorIsPositiveAndNegativeOfNumerator() public {
+    int256 a = 10;
+    int256 b = -5;
+
+    uint256 ratio = getAbsoluteRatio(a, b);
+
+    assertEq(ratio, 2, "Ratio should be 2");
+}
 ```
 
-## 4 Automated verification
+The following fuzz test written in Foundry would also result in 100% branch coverage, but would also find the missing zero-check for `b`. Note that this fuzz test doesn't test that it calculates the correct ratio, but only that the ratio is always positive.
+
+Once the fuzz tests fails when `b = 0`, the missing zero-check can be added to the code. Additionally, the fuzz test can be updated to also check that the ratio is correct.
+
+```solidity
+//----------
+// Fuzz test
+//
+// 100% coverage with this single fuzz tests,
+// assuming that the fuzzer uses at least once
+// an `a` and `b` with the same sign and once with
+// difference signs (which every decent fuzzer should do).
+
+function test_getAbsoluteRatio_isAlwaysPositive(int256 a, int256 b) public {
+    uint256 ratio = getAbsoluteRatio(a, b);
+
+    assertTrue(ratio >= 0);
+}
+```
+
+This shows that fuzzing can be a very powerful tool to find edge cases that are not directly visible in the source code.
+
+## 3 Automated verification
+
+The methods of unit testing and fuzzing required manually written tests. This is in contract to the automated tests described in the remaining part of this article. The automated tests use assertions present in the code and known vulnerabilities to make sure that the source code adheres to these requirements.
 
 A lot of research and development has gone into automated verification tools and theories. Some of these techniques will be described in the remaining sections of this article. One thing to keep in mind is that each technique does not exclude the other. In contrary, they can be used together to make the verification process better/more efficient.
 
-One of the techniques used as the backbone of automated verification is [Satisfiable Modulo Theory (SMT)](#5-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables. Sometimes this is also called the assignment for this the statement **holds**.
+One of the techniques used as the backbone of automated verification is [Satisfiable Modulo Theory (SMT)](#4-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables. Sometimes this is also called the assignment for which the statement **holds**.
 
 For example, looking only at boolean logic (`true` and `false`):
 
 - The statement `a && ~b` (where `~` means the negation) is satisfiable by assigning `a = true; b = false`. Since `true && ~false = true && true = true`.
 - But `a && ~a` is not satisfiable as it will always result in `false`. Since if `a = false` `false && ~false = false && true = false`. Similarly, when `a = true` it follows that `true && ~true = true && false = false`.
 
-One of the techniques that uses SMT is [Symbolic execution](#6-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. An assertion in Solidity is indicated with the `assert()` function. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway. In other words to prune (remove) these branches from the analysis process.
+The SMT checker would take the statements (`a && ~b` or `a && ~a`) as the only input. Then the SMT checker will check if the statement is satisfiable, and if so, it will find a satisfying assignment for the variables.
+
+One of the techniques that makes use of SMT is [Symbolic execution](#5-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. An assertion in Solidity is indicated with the `assert()` function. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway.
+
+The last technique that will be discussed in this article is [Static analysis](#6-static-analysis). Where symbolic execution 'runs' the code, static analysis 'looks' at the code (hence the name 'static'). It is mostly used to detect patterns in the code.
+
+The remaining sections will describe these techniques in more detail.
 
 ---
 
-## 5 Satisfiable Modulo Theory (SMT)
+## 4 Satisfiable Modulo Theory (SMT)
 
 To get a better idea of what an SMT checker does, we will go over a simple example. We will use [z3](https://github.com/Z3Prover/z3) as this is the most used SMT checker for automatic analysis tools (for Solidity).
 
@@ -125,7 +181,7 @@ function specialAdd(int256 a, int256 b) returns (int256 c) {
 }
 ```
 
-### 5.1 Checking if the requirement can hold
+### 4.1 Checking if the requirement can hold
 
 We can first check if the requirement (`a + b > 100`) can hold at al. This can be done with the checks as shown below in z3. The syntax used is [SMTLib](https://microsoft.github.io/z3guide/docs/logic/basiccommands). For this example, it is enough to know that SMTLib uses the format `(operation arg1 arg2 ... argn)`. Meaning that `(+ a b)` represents `a + b`.
 
@@ -158,7 +214,7 @@ sat
 
 However, now we only know that it is possible. We don't know yet if `a + b` is always more than 100. This approach can be compared to testing only the happy flow when writing unit tests. We need to check if the requirement can be violated instead.
 
-### 5.2 Checking if the requirement will always hold
+### 4.2 Checking if the requirement will always hold
 
 To check if our requirement always holds we will check for the **negation** of our requirement. Meaning that we are checking if the requirement can be violated. The only change is that we put `(not ...)` around our requirement.
 
@@ -208,9 +264,9 @@ This results in `unsat`, meaning that `a + b <= 100` can not hold, i.e. the asse
 
 For more complex systems you would generally not write these rules in z3 manually, but instead, generate them using a higher-level tool. More often SMT is part of more advanced tooling like **symbolic execution**. The example below which describes this.
 
-## 6 Symbolic execution
+## 5 Symbolic execution
 
-### 6.1 Introduction by Example
+### 5.1 Introduction by Example
 
 Consider the function `specialAdd()` from the SMT example.
 
@@ -254,7 +310,7 @@ As mentioned in the SMT section, SMT is used in symbolic execution. It does this
 
 The path of the failing assert, however, is of interest. As mentioned above, it first needs to be determined if the path is reachable. If so, it will find a concrete counter-example. The `PC` for the failing branch is `(A > 15) && (A + B <= 100)`. These are the exact constraints that we used in the SMT example, so we already know that this `PC` can be satisfied if `A = 16` and `B = 84`. Since the failing assert can be reached, we know that an extra `require()` is needed to make sure that this `PC` becomes unsatisfiable.
 
-### 6.2 Limitations
+### 5.2 Limitations
 
 The `specialAdd()` function is of course a really simple function. It doesn't interact with state variables, it doesn't call other local functions, and also doesn't call external functions.
 
@@ -297,35 +353,29 @@ The state-space-explosion problem means that the symbolic execution has to have 
 
 What if the function calls an external function of an interface and we don't have the code of the implementation? In this case, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and say that symbolic execution is not possible in this case. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function. Or something in between. Some tools have a way of dealing with this, but then you do need access to the source code. Mythril makes this possible for example as shown in [this article](https://blog.mythx.io/misc/easy-multi-contract-security-analysis-using-mythril/).
 
-## 7 Model checking
+## 6 Static analysis
 
-When verifying a state-machine (sometimes also called the model), the assertions to test are mostly related to time-sensitive assertions. For example, if it needs to be verified that function `stepOne()` can never be called before function `stepTwo()`, then we can verify this with a state-machine. The nice thing about validating on a state-machine is that it can also be done before writing any code. A state-machine can be created based on the functional design for example to see if the design has the desired properties.
+So far SMT, symbolic execution and fuzzing have been discussed as tools that help to find more bugs than with unit tests alone. These are all analysis tools that check the source code against assertions/requirements that the code should adhere to by running the code. Static analysis is different in that it doesn't run the code, but it looks at the code and tries to find patterns that are known to be problematic.
 
-This [paper](https://hal.archives-ouvertes.fr/hal-02103511/document) shows an example of how a smart contract is can be converted to a state-machine. In this paper, the tool [NuSMV](https://nusmv.fbk.eu/) is used to model and verify smart-contracts. When using a state-machine to perform verification on, [temporal logic](https://wickstrom.tech/programming/2021/05/03/specifying-state-machines-with-temporal-logic.html) can be used. Temporal logic allows the user to specify that event `b` should always immediately follow after event `a`, or that event `b` can not happen if event `a` occurred twice, but that it can happen if it occurred once.
+For example, [Prettier](https://prettier.io/) (the code formatter) is also static analysis tool. It looks at your code and finds violations of rules defined in the configuration of prettier. Also [Grammarly](https://app.grammarly.com/) can be though of as a static analysis tool. It looks at your text and finds violations of rules defined by the English language.
 
-In another [paper](https://www.fit.vutbr.cz/research/groups/verifit/tools/muse/bytecode08.pdf), symbolic execution was used to generate a state-machine on which temporal properties could be verified. This makes it possible to do model checking without manually creating a state-machine. This shown again that verification techniques don't exclude each other.
-
-## 8 Static analysis
-
-Whereas symbolic execution **runs** the code (be it with symbolic values), static analyses only **looks** at the code. This doesn't mean that static analysis tools are less powerful or less useful (because they aren't). But it does mean that, in general, they will finish quicker than symbolic execution.
-
-The main goal of static analysis tools is to find patterns in the code that are not conforming to a certain standard, or that are known to have a high chance of contributing to a bug in the code. Another thing is that it could, for example, find dead code by looking at where functions and variables are used in the code.
+More generally, the goal of static analysis tools is to find patterns in the code that are not conforming to a certain standard, or that are known to have a high chance of leading to a bug in the code. Another thing is that it could, for example, find dead code by looking at where functions and variables are used in the code.
 
 For Solidity, one such pattern is for example updating a variable after an external call. This is a classic setup for re-entrancy attacks.
 
-Note that [Prettier](https://prettier.io/) (the code formatter) is also a static analysis tool. It looks at your code and finds violations of rules defined in the configuration of prettier.
+Static analysis can also be used to help reduce the state-space-explosion problem. This is because static analysis analyses the source code and sees dependencies between variables and function. This gained insight can then be used to decide to not symbolically execute certain branches. Meaning that branches that are not updating state variables of the contract can be pruned earlier for example.
 
-Static analysis can also be used to help reduce the state-space-explosion problem. This is because static analysis analyses the source code and sees dependencies between variables and function. This gained insight can then be used to decide to not symbolically execute certain branches. Meaning that branches that are not updating state variables of the contract can be pruned earlier for example. For Solidity specifically, this was presented in the [paper for MPro](https://arxiv.org/pdf/1911.00570.pdf). MPro improved the symbolic execution tool for Solidity called [Mythril](https://github.com/ConsenSys/mythril/tree/develop) with the static analysis tool for Solidity called [Slither](https://github.com/crytic/slither).
+For Solidity specifically, this was presented in the [paper for MPro](https://arxiv.org/pdf/1911.00570.pdf). MPro improved the symbolic execution tool for Solidity called [Mythril](https://github.com/ConsenSys/mythril/tree/develop) with the static analysis tool for Solidity called [Slither](https://github.com/crytic/slither).
 
-## 9 A note of formal verification
+## 7 A note of formal verification
 
-The techniques discussed so far will only tell you that the assertions (requirements) that you want to verify in your program are met within the configuration given to the tools. Meaning that if an assertion could be violated after `n` amount of steps, but to reduce the state-space the configuration is only allowed `n-1` steps, the violation might not be found (and thus not reported).
+The techniques discussed so far will only tell you that the assertions (requirements) that you want to verify in your program are met within the configuration given to the tools. Meaning that if an assertion could be violated after `n` amount of steps, but to reduce the state-space, the configuration is only allowed `n-1` steps, the violation might not be found (and thus not reported).
 
-Also, the tools can only verify what is given to them, so if the assertion does not cover the associated requirement in a function design, then the assertion might not be violated while the assertion itself is not correct. Giving a false impression of success.
+Also, the tools can only verify what is given to them, so if the assertion does not cover the associated requirement in a functional design, then the assertion might not be violated while the assertion itself is not correct. Giving a false impression of success.
 
 ---
 
-## 10 How Byont uses these techniques
+## 8 How Byont uses these techniques
 
 At Byont, we make heavy use of Foundry's fuzzing capabilities. Besides that, we are also making use of:
 
@@ -333,23 +383,21 @@ At Byont, we make heavy use of Foundry's fuzzing capabilities. Besides that, we 
 - solc's [SMTChecker](https://docs.soliditylang.org/en/v0.8.17/smtchecker.html) and [Mythril](https://github.com/ConsenSys/mythril/tree/develop) (symbolic execution)
 - [KEVM](https://github.com/runtimeverification/evm-semantics) (symbolic execution and more).
 
-KEVM is built on the [K-framework](https://github.com/runtimeverification/k) from [Runtime Verification](https://runtimeverification.com/).
+How these tools work in detail will be discussed in a later article.
 
 We are currently in the process of improving the integration of these tools in our development flow.
 
-It is important to use multiple tools since none of them will find all problems on their own. This is not because the tools are not good enough (because they are good). It's just that their methods of implementing the analysis techniques can focus on different aspects.
+It is important to use multiple tools since none of them will find all problems on their own. This is not because the tools are not good enough (because they are good). It's just that their methods of implementing the analysis techniques can focus on different aspects. A survey that compared 27 analysis tools can be found in this [paper](https://www.researchgate.net/publication/334786201_A_Survey_of_Tools_for_Analyzing_Ethereum_Smart_Contracts).
 
-That's why analyzing and combining the results is the best option. This is also the goal of our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project.
+That's why analyzing and combining the results is the best option. This is also the goal of Byont's [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project.
 
-It would of course be super interesting to create our own symbolic execution or static analysis tool. However, it is simply not realistic to expect that we can create a tool that is as good or better as the existing tools. This is simply because the amount of research and development that has gone into these tools is too much. What is realistic, however, is to improve existing tools by contributing to the projects and combining the strength of multiple tools.
+Byont's [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project initially aims to be easily integrated into the development flow. After the execution of the tool, the user will receive a report highlighting the potential problems in your contract(s) and giving potential solutions.
 
-Our [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools) project initially aims to be easily integrated into the development flow. After the execution of our tool, you will receive a report highlighting the potential problems in your contract(s) and giving potential solutions.
+The report will be mostly agnostic to the used tools. A developer wants to know what the problems are and that false positives (detected errors that aren't real errors) are filtered out. This can only be done by analyzing the result of multiple tools in combination with the source code itself.
 
-The report will be mostly agnostic to the used tools. As a developer, you want to know what the problems are and that false positives (detected errors that aren't real errors) are filtered out. This can only be done by analyzing the result of multiple tools in combination with the source code itself.
+## 9 Follow-up
 
-## 11 Follow-up
-
-In the next article, we will demonstrate how our tool can be used with some real-life examples.
+In the next article, it will be demonstrated how Byont's tool can be used with real-life examples.
 
 <!-- ## Constraint Horn Clauses (CHC)
 
@@ -378,3 +426,4 @@ The main benefit of working with bytecode is that you are working with the code 
 - [Smart-contract verification in NuSMV](https://hal.archives-ouvertes.fr/hal-02103511/document)
 - [Temporal logic](https://wickstrom.tech/programming/2021/05/03/specifying-state-machines-with-temporal-logic.html)
 - [Verifying LTL Properties of Bytecode with Symbolic Execution](https://www.fit.vutbr.cz/research/groups/verifit/tools/muse/bytecode08.pdf)
+- [Analysis tool survey](https://www.researchgate.net/publication/334786201_A_Survey_of_Tools_for_Analyzing_Ethereum_Smart_Contracts)
