@@ -267,12 +267,17 @@ The state-space can blow up quite quickly. Consider the function `getAgeCategory
 ```Solidity
 enum AGE_CATEGORY { BABY, CHILD, TEEN, ADULT, SENIOR }
 
-function getAgeCategory(uint256[] memory age) public pure returns (AGE_CATAGORY[] memory catagories) {
+uint256 numberOfChildren;
+
+function getAgeCategory(uint256[] memory age) external returns (AGE_CATAGORY[] memory catagories) {
+    uint256 _numberOfChildren = 0;
+
     for(uint256 i = 0; i < age.length; i++) {
         if (age[i] < 1) {
             catagories[i] = AGE_CATEGORY.BABY;
         } else if (age[i] < 13) {
             catagories[i] = AGE_CATEGORY.CHILD;
+            _numberOfChildren++;
         } else if (age[i] < 20) {
             catagories[i] = AGE_CATEGORY.TEEN;
         } else if (age[i] < 65) {
@@ -281,14 +286,18 @@ function getAgeCategory(uint256[] memory age) public pure returns (AGE_CATAGORY[
             catagories[i] = AGE_CATEGORY.SENIOR;
         }
     }
+
+    numberOfChildren = _numberOfChildren;
 }
 ```
 
-One of the things that are done to reduce the state-space and resource usage is to prune uninteresting states. Pruning was briefly mentioned in the [symbolic execution example](#61-introduction-by-example).
+One of the things that are done to reduce the state-space and resource usage is to prune uninteresting paths. Meaning that paths that, for example, do not change the state of the contract, can be removed from the analysis. This reduces the memory usage and lowers the analysis time by not needing to process these paths further.
 
-The state-space-explosion problem means that the symbolic execution has to have some trade-offs. For example, only looping up to a certain amount when dealing with parameter-determined loop bounds. Or to stop after `n` amount of transactions.
+The state-space-explosion problem means that the symbolic execution has to have some trade-offs. For example, only looping up to a certain amount when dealing with parameter-determined loop bounds. Or to stop after 'n' amount of transactions.
 
 What if the function calls an external function of an interface and we don't have the code of the implementation? In this case, the tool could simply return a random value (in the domain of the return type of the external call), or it could simply give up and say that symbolic execution is not possible in this case. But this of course ignores the possibility that the external call makes a change in the state variables of the original contract which can influence the flow for the rest of the original function. Or something in between.
+
+// TODO: It seems that mythril can sort of do this. Need to test this: https://blog.mythx.io/misc/easy-multi-contract-security-analysis-using-mythril/ (anvil might be useful for this)
 
 ## 7 Model checking
 
