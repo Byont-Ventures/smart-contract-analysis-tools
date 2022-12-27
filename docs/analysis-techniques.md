@@ -24,11 +24,15 @@ The layout is as follows:
 
 ## 0 Pre-requisites
 
-The reader is expected to have knowledge about programming (preferably in Solidity) and a basic understanding of logic. Blockchain and Solidity are used for the context and examples in this article, but the techniques described are not specific to these technologies.
+The reader is expected to have knowledge about programming (preferably in Solidity) and a basic understanding of logic.
+
+Blockchain, Solidity and [Foundry](https://book.getfoundry.sh/) are used for the context and examples in this article, but the analysis techniques described are not specific to these technologies.
 
 ## 1 Unit testing
 
-The goal of a unit test is to test that a function does what it is expected to do.
+First of all, unit tests. The goal of a unit test is to test that a function does what it is expected to do for a specific input. Every project should have at least some unit tests to make sure that the critical parts of the project work as expected.
+
+However, if unit tests are not written carefully, they can miss edge cases.
 
 Take the `payOff()` function from the code snippet below. Its expected behavior is to increase the credit of a user by a given amount. A user can have a negative credit (hence the mapping in `credit` to `int256`). The user can pay off debt (negative credit) by sending in a value (only positive and thus of type `uint256`) with the `payOff()` function.
 
@@ -44,29 +48,29 @@ function payOff(uint256 amount) public {
 ...
 ```
 
-At first sight, it seems just fine. However, note that a `uint256` is cast to an `int256`. Solidity uses [two's complement](https://nl.wikipedia.org/wiki/Two%27s_complement) for representing negative values. Meaning that where `uint256` has the range `[0, 2^256 - 1]`, `int256` has the range `[-2^255, -2^255 - 1]`.
+At first sight, it seems just fine. However, note that a `uint256` is casted to an `int256`. Solidity uses [two's complement](https://nl.wikipedia.org/wiki/Two%27s_complement) for representing signed values. Meaning that where `uint256` has the range `[0, 2^256 - 1]`, `int256` has the range `[-2^255, -2^255 - 1]`.
 
-So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of `2^255` (`0b100.....`), `msg.sender` would instead have a debt now of `-2^255 + original credit`. This is because of how two's complement representation works`. This is not the intended behavior of the function.
+So if `msg.sender` would first have a positive credit and then wants to give a future-proof boost of `2^255` (`0b100.....`), `msg.sender` would instead have a debt now of `-2^255 + original credit`. This is because of how two's complement representation works. Both `uint256` and `int256` have the same amount of bits, but these bits are interpreted differently. This is not the intended behavior of the function.
 
-If this function would be naively tested with unit tests, a test could be created to only checks for values of `amount` that the developer expects the user to use. This could miss the scenario described above.
+If this function would be naively tested with unit tests, a test could be created to only checks for values of `amount` that the developer expects the user to use (for example up to around 10.000). This could miss the scenario described above. The edge case described above might indeed never be triggered, but it is still a bug.
 
 This is all to say that unit testing is good, as long as the developer created unit tests for all edge cases.
 
 ## 2 Fuzzing / property testing
 
-Fuzzing / property testing is an improvement to single scenario unit tests. Instead of testing a single scenario, your test now needs to work for **all** possible values (in the range of the input type of course). The structure of the unit test might not need to change much. The main difference is that if normally a hardcoded value would be used as the input for the function to test (for example `payOff(4)` for the function above), now a variable will be used that will be assigned a value by the fuzzer (resulting in `payOff(fuzzedAmount`). The chosen value might triggers an edge-case that wasn't directly seen in the source code by the developer.
+Fuzzing / property testing is an improvement to single scenario unit tests. Instead of testing a single scenario, the test now needs to work for **all** possible values. The structure of the unit test might not need to change much however. The main difference is that if normally a hardcoded value would be used as the input for the function to test (for example `payOff(4)` for the function above), now a variable will be used that will be assigned a value by the fuzzer (resulting in `payOff(fuzzedAmount`). Generally a fuzzer executed multiple rounds with a newly chosen value on each round. The chosen value might triggers an edge-case that wasn't directly seen in the source code by the developer.
 
-Both techniques (fuzzing and property testing) are similar, but the main difference is that property testing is in general a more restricted version of fuzzing where the input and output of the property test are defined in the form of unit-style tests. Ted Kaminski (Ph.D.) wrote an [article](https://www.tedinski.com/2018/12/11/fuzzing-and-property-testing.html) about the differences. Also [this article](https://blog.nelhage.com/post/property-testing-is-fuzzing/) from Nelson Elhage describes a similar difference.
+Both techniques (fuzzing and property testing) are similar, but the main difference is that property testing is in general a more restricted version of fuzzing where the input and output of the property test are defined in the form of a unit-test-style. Ted Kaminski (Ph.D.) wrote an [article](https://www.tedinski.com/2018/12/11/fuzzing-and-property-testing.html) about the differences. Also [this article](https://blog.nelhage.com/post/property-testing-is-fuzzing/) from Nelson Elhage describes a similar difference.
 
-The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework is a popular framework for Solidity that provides fuzzing. While they call it fuzzing, when reading the the documentation they talk about property testing. For the rest of this article, the term fuzzing is used since that is also how Foundry advertises the technique.
+The [Foundry](https://book.getfoundry.sh/forge/fuzz-testing?highlight=fuzz#fuzz-testing) framework is a popular framework for Solidity that provides fuzzing. While they call it fuzzing, when reading the the documentation they talk about property testing. Looking at the articles that discuss the difference between the two, Foundry's fuzzer indeed is more a property tester. For the rest of this article, however, the term fuzzing is used since that is also how Foundry advertises the technique.
 
-Fuzzing can be either very simple by using a new (random) input for each new fuzz run, or more complex, by looking at the source code and previous fuzz runs to come up with the next input. Several fuzz techniques are described in [this article](https://www.coalfire.com/the-coalfire-blog/fuzzing-common-tools-and-techniques?feed=blogs).
+Fuzzing can be either very simple by using a new (random) input for each new fuzz run, or more complex, by looking at the source code and previous fuzz runs to come up with the next input in order to find more bugs. Several of these fuzzing techniques are described in [this article](https://www.coalfire.com/the-coalfire-blog/fuzzing-common-tools-and-techniques?feed=blogs).
 
-By using a fuzzer, the problem described for the `payOff()` function would likely have been found due to a fuzz parameter being `>= 2^255`.
+By using a fuzzer, the problem described for the `payOff()` function would likely have been found due to a fuzz parameter select being `>= 2^255`.
 
 ### 2.1 Fuzzing with Foundry
 
-Take for example the code below. It's easy to get 100% test coverage with unit tests alone, but that doens't mean that the missing zero-check for `b` is found.
+Take the code below. It's easy to get 100% branch coverage with unit tests alone, but that doesn't mean that the missing zero-check for `b` is found.
 
 ```solidity
 //----------
@@ -111,7 +115,7 @@ function test_getAbsoluteRatio_isPositiveIfSignOfNumeratorIsPositiveAndNegativeO
 
 The following fuzz test written in Foundry would also result in 100% branch coverage, but would also find the missing zero-check for `b`. Note that this fuzz test doesn't test that it calculates the correct ratio, but only that the ratio is always positive.
 
-Once the fuzz tests fails when `b = 0`, the missing zero-check can be added to the code. Additionally, the fuzz test can be updated to also check that the ratio is correct.
+Once the fuzz tests fails when `b = 0`, the missing zero-check can be added to the code by the developer. Additionally, the fuzz test can be updated to avoid `b = 0` and a new fuzz test can be added to test that `b = 0` results in a (custom) revert.
 
 ```solidity
 //----------
@@ -129,26 +133,39 @@ function test_getAbsoluteRatio_isAlwaysPositive(int256 a, int256 b) public {
 }
 ```
 
+Adding the check to avoid `b = 0` is done as follows:
+
+```solidity
+function test_getAbsoluteRatio_isAlwaysPositive(int256 a, int256 b) public {
+    // Avoid division by zero
+    vm.assume(b != 0);
+
+    uint256 ratio = getAbsoluteRatio(a, b);
+
+    assertTrue(ratio >= 0);
+}
+```
+
 This shows that fuzzing can be a very powerful tool to find edge cases that are not directly visible in the source code.
 
 ## 3 Automated verification
 
-The methods of unit testing and fuzzing required manually written tests. This is in contract to the automated tests described in the remaining part of this article. The automated tests use assertions present in the code and known vulnerabilities to make sure that the source code adheres to these requirements.
+The methods of unit testing and fuzzing requires manually written tests. This is in contrast to the automated tests described in the remaining part of this article. The automated tests use assertions present in the source code (`assert()`) and known vulnerabilities to the analysis tools to test if the source code violates any of these.
 
-A lot of research and development has gone into automated verification tools and theories. Some of these techniques will be described in the remaining sections of this article. One thing to keep in mind is that each technique does not exclude the other. In contrary, they can be used together to make the verification process better/more efficient.
+A lot of research and development has gone into automated verification tools and theories. Some of these techniques will be described in the remaining sections of this article. One thing to keep in mind is that each technique does not exclude the other. In contrary, they can be used together to make the verification process better and more efficient.
 
 One of the techniques used as the backbone of automated verification is [Satisfiable Modulo Theory (SMT)](#4-satisfiable-modulo-theory-smt). The main purpose of SMT is to check if the variables in a program can have a certain (initial) value such that a requirement is met. In other words, if there is a **satisfiable** assignment for the variables. Sometimes this is also called the assignment for which the statement **holds**.
 
 For example, looking only at boolean logic (`true` and `false`):
 
 - The statement `a && ~b` (where `~` means the negation) is satisfiable by assigning `a = true; b = false`. Since `true && ~false = true && true = true`.
-- But `a && ~a` is not satisfiable as it will always result in `false`. Since if `a = false` `false && ~false = false && true = false`. Similarly, when `a = true` it follows that `true && ~true = true && false = false`.
+- But `a && ~a` is not satisfiable as it will always result in `false`. Since if `a = false`, it follows that `false && ~false = false && true = false`. Similarly, when `a = true`, it follows that `true && ~true = true && false = false`.
 
 The SMT checker would take the statements (`a && ~b` or `a && ~a`) as the only input. Then the SMT checker will check if the statement is satisfiable, and if so, it will find a satisfying assignment for the variables.
 
 One of the techniques that makes use of SMT is [Symbolic execution](#5-symbolic-execution) which checks all branches of a program to see if any of them lead to a failing assertion. An assertion in Solidity is indicated with the `assert()` function. If it finds a failing branch it will check if that branch can be reached using SMT. But SMT is also used during other stages in symbolic execution. For example to avoid wasting processing time on branches that can't be reached anyway.
 
-The last technique that will be discussed in this article is [Static analysis](#6-static-analysis). Where symbolic execution 'runs' the code, static analysis 'looks' at the code (hence the name 'static'). It is mostly used to detect patterns in the code.
+The last technique that will be discussed in this article is [Static analysis](#6-static-analysis). Where symbolic execution 'runs' the code, static analysis 'looks' at the code (hence the name 'static'). It is mostly used to detect unwanted patterns in the code.
 
 The remaining sections will describe these techniques in more detail.
 
@@ -156,20 +173,18 @@ The remaining sections will describe these techniques in more detail.
 
 ## 4 Satisfiable Modulo Theory (SMT)
 
-To get a better idea of what an SMT checker does, we will go over a simple example. We will use [z3](https://github.com/Z3Prover/z3) as this is the most used SMT checker for automatic analysis tools (for Solidity).
+To get a better idea of what an SMT checker does, a simple example is presented. The tool [z3](https://github.com/Z3Prover/z3) is used as this is the most used SMT checker for automatic analysis tools (for Solidity).
 
-**An online z3 runner can be used if you want to try the examples yourself:** https://microsoft.github.io/z3guide/playground/Freeform%20Editing
+**An online z3 runner can be used if the reader wants to run the example in their own browser:** https://microsoft.github.io/z3guide/playground/Freeform%20Editing
 
-Please note that SMT is a general tool and can be used for more than only software languages. The SMT solver simply tries to find a satisfiable assignment for a set of constraints (assumptions and requirements).
+Please note that SMT is a generic tool and can be used for more than only software verification. The SMT solver simply tries to find a satisfiable assignment for a set of constraints (assumptions and requirements). This means that it could, for example, also be used to check if it is possible to fit a selection of shaped in a certain border without the shapes overlapping.
 
-For the example let's say that we have integers `a` and `b` with the following constraints:
+For the example let's say that there are the integers `a` and `b` with the following constraints:
 
 - Assumption: `a > 15`
 - Requirement: `a + b > 100`
 
 In Solidity this could look like the code below.
-
-Note that the assumptions and requirements can originate from knowledge about the system in which the function is used, while the function itself doesn't have this knowledge explicitly. The function might be fine when used in the system, but not when used as a self-containing function.
 
 ```Solidity
 function specialAdd(int256 a, int256 b) returns (int256 c) {
@@ -181,13 +196,15 @@ function specialAdd(int256 a, int256 b) returns (int256 c) {
 }
 ```
 
+Note that the assumptions and requirements can originate from knowledge about the system in which the function is used, while the function itself doesn't have this knowledge explicitly.
+
 ### 4.1 Checking if the requirement can hold
 
-We can first check if the requirement (`a + b > 100`) can hold at al. This can be done with the checks as shown below in z3. The syntax used is [SMTLib](https://microsoft.github.io/z3guide/docs/logic/basiccommands). For this example, it is enough to know that SMTLib uses the format `(operation arg1 arg2 ... argn)`. Meaning that `(+ a b)` represents `a + b`.
+It will first be checked if the requirement (`a + b > 100`) can hold at al. Meaning that there is **at least one** satisfiable assignment for `a` and `b`. This can be done with the checks as shown below in z3.
 
-It is important to note that here we only check that there is **at least one** assignment for `a` and `b` that makes sure that `a + b > 100`.
+The syntax used is [SMTLib](https://microsoft.github.io/z3guide/docs/logic/basiccommands). For this example, it is enough to know that SMTLib uses the format `(operation arg1 arg2 ... argn)`. Meaning that `(+ a b)` represents `a + b`.
 
-First, we introduce the values `a` and `b` using `declare-const`, then we describe the constraints using `assert`. After this, we check if the constraints can be satisfied with `(check-sat)` and get an example assignment with `(get-model)`.
+First, the variables `a` and `b` are declared using `declare-const`, then the constraints are declared using `(assert ...)`. After this, it is checked if the constraints can be satisfied with `(check-sat)` and get an example assignment with `(get-model)`.
 
 ```smt-lib
 (declare-const a Int)
@@ -200,7 +217,7 @@ First, we introduce the values `a` and `b` using `declare-const`, then we descri
 (get-model)
 ```
 
-Running this in the online tool results in the following output. Saying that if `a = 16` and `b = 85` that all constraints are met (which is true since `16 + 85 = 101 > 100`).
+Running the code above in the online tool results in the following output seen below.
 
 ```
 sat
@@ -212,11 +229,15 @@ sat
 )
 ```
 
-However, now we only know that it is possible. We don't know yet if `a + b` is always more than 100. This approach can be compared to testing only the happy flow when writing unit tests. We need to check if the requirement can be violated instead.
+This says that if `a = 16` and `b = 85`, that all constraints are met (which is true since `16 > 15 and 16 + 85 = 101 > 100`).
+
+However, now it is only proven that it is possible to meet the criteria. It is not known yet if `a + b` is always `> 100` while `a > 15`. This approach can be compared to testing only the happy flow when writing unit tests. It needs to be checked if the requirement can be violated instead.
 
 ### 4.2 Checking if the requirement will always hold
 
-To check if our requirement always holds we will check for the **negation** of our requirement. Meaning that we are checking if the requirement can be violated. The only change is that we put `(not ...)` around our requirement.
+To check if the requirement always holds, the **negation** of the requirement needs to be asserted. This checks if `a + b` can ever be `<= 100` while `a > 15`. If such an assignment can be found (thus if the set of constraints is satisfiable), it means that the assertion can be violated.
+
+The only change in the code is that `(not ...)` is put around the requirement.
 
 ```smt-lib
 (declare-const a Int)
@@ -229,7 +250,7 @@ To check if our requirement always holds we will check for the **negation** of o
 (get-model)
 ```
 
-Resulting in the following output. This says that the negation of our requirement can be satisfied. Meaning that the requirement is not met. A counter-example to our requirement is given as `a = 16` and `b = 84` resulting in `16 + 84 = 100 <= 100`. The requirement is indeed violated.
+This code results in the following output.
 
 ```
 sat
@@ -241,9 +262,13 @@ sat
 )
 ```
 
+This says that the negation of the requirement can be satisfied. Meaning that the requirement is not met. A counter-example to the requirement is given as `a = 16` and `b = 84`, resulting in `a > 15 and 16 + 84 = 100 <= 100`. The requirement is indeed violated while the assumption is still met.
+
 This example showed that SMT tools can be used to check if logical requirements can be violated and that they can give a counter-example if it is violated.
 
-So we could say that we need the assumption that `b >= 85` (or in Solidity `require(b >= 85, "b < 85")`).
+After learning that the requirement can be violated, it could be decided that the assumption `b >= 85` is needed (or in Solidity `require(b >= 85, "b < 85")`).
+
+Translating this to SMTLib, the code would look like the following.
 
 ```smt-lib
 (declare-const a Int)
@@ -256,13 +281,17 @@ So we could say that we need the assumption that `b >= 85` (or in Solidity `requ
 (check-sat)
 ```
 
+Resulting is the following output.
+
 ```
 unsat
 ```
 
-This results in `unsat`, meaning that `a + b <= 100` can not hold, i.e. the assert is the code will always hold. Note that the above doesn't have `(get-model)`, simply because the model can't be satisfied.
+This says that the set of constraints is not satisfiable and thus that the requirement can not be violated while the assumptions are met.
 
-For more complex systems you would generally not write these rules in z3 manually, but instead, generate them using a higher-level tool. More often SMT is part of more advanced tooling like **symbolic execution**. The example below which describes this.
+Note that the code above doesn't have `(get-model)`, simply because the model can't be satisfied.
+
+For more complex systems, another tool would normally generate these sets of constraints since it can become quite complex. More often SMT is part of higher level tooling like **symbolic execution**.
 
 ## 5 Symbolic execution
 
@@ -422,8 +451,10 @@ The main benefit of working with bytecode is that you are working with the code 
 - [A list of formal verification tools for ethereum](https://github.com/leonardoalt/ethereum_formal_verification_overview)
 - [SWC registry](https://swcregistry.io/)
 - [Smart contract vulnerabilities](https://hacken.io/discover/smart-contract-vulnerabilities/)
+- [Fuzzing techniques](https://www.coalfire.com/the-coalfire-blog/fuzzing-common-tools-and-techniques?feed=blogs)
 - [Paper for MPro](https://arxiv.org/pdf/1911.00570.pdf)
 - [Smart-contract verification in NuSMV](https://hal.archives-ouvertes.fr/hal-02103511/document)
 - [Temporal logic](https://wickstrom.tech/programming/2021/05/03/specifying-state-machines-with-temporal-logic.html)
 - [Verifying LTL Properties of Bytecode with Symbolic Execution](https://www.fit.vutbr.cz/research/groups/verifit/tools/muse/bytecode08.pdf)
 - [Analysis tool survey](https://www.researchgate.net/publication/334786201_A_Survey_of_Tools_for_Analyzing_Ethereum_Smart_Contracts)
+- [smart-contract-analysis-tools](https://github.com/Byont-Ventures/smart-contract-analysis-tools)
