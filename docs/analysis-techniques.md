@@ -451,6 +451,8 @@ The main benefit of working with bytecode is that you are working with the code 
 - [A list of formal verification tools for ethereum](https://github.com/leonardoalt/ethereum_formal_verification_overview)
 - [SWC registry](https://swcregistry.io/)
 - [Smart contract vulnerabilities](https://hacken.io/discover/smart-contract-vulnerabilities/)
+- [Ted Kaminski about fuzzing and property testing](https://www.tedinski.com/2018/12/11/fuzzing-and-property-testing.html)
+- [Nelson Elhage about fuzzing and property testing](https://blog.nelhage.com/post/property-testing-is-fuzzing/)
 - [Fuzzing techniques](https://www.coalfire.com/the-coalfire-blog/fuzzing-common-tools-and-techniques?feed=blogs)
 - [Paper for MPro](https://arxiv.org/pdf/1911.00570.pdf)
 - [Smart-contract verification in NuSMV](https://hal.archives-ouvertes.fr/hal-02103511/document)
