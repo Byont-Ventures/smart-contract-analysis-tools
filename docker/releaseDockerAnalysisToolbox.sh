@@ -25,4 +25,5 @@ echo "================================================================="
 echo ""
 
 dockerEnv=$(dirname "$0")
-docker buildx build --push --platform=linux/arm64 --pull -t ghcr.io/byont-ventures/analysis-toolbox:latest -f ${dockerEnv}/Dockerfile.analysisToolbox ${dockerEnv}
+tag=$(date +'%d-%m-%Y_%H-%M')
+docker buildx build --push --platform=linux/arm64 --pull -t ghcr.io/byont-ventures/analysis-toolbox:${tag} -f ${dockerEnv}/Dockerfile.analysisToolbox ${dockerEnv}
