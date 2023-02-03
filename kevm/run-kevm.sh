@@ -34,11 +34,11 @@ fi
 mkdir -p $(dirname "$0")/results/${contractName}
 outputFile=$(dirname "$0")/results/${contractName}/${contractName}-kevm.result
 
-dockerImage=ghcr.io/byont-ventures/analysis-toolbox:latest
+dockerImage=ghcr.io/byont-ventures/analysis-toolbox:01-02-2023_11-18
 
 echo ""                                                                     | tee ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
-echo "Pulling latest ${dockerImage}"                                        | tee -a ${outputFile}
+echo "Pulling image ${dockerImage}"                                         | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
@@ -83,7 +83,7 @@ docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                 
         --schedule ${evmVersion}                                                                        \
         --main-module VERIFICATION                                                                      \
         --syntax-module VERIFICATION                                                                    \
-        --concrete-rules-file /root/evm-semantics/tests/specs/examples/concrete-rules.txt               \
+        --concrete-rules-file /root/evm-semantics/tests/specs/concrete-rules.txt                        \
         -I /root/evm-semantics/.build/usr/lib/kevm/include/kframework                                   \
         -I /root/evm-semantics/.build/usr/lib/kevm/blockchain-k-plugin/include/kframework               \
         --verbose" 2>&1 | tee -a ${outputFile}
