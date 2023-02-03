@@ -1,0 +1,148 @@
+{
+  "repository_link": "https://github.com/",
+  "commit": "11111111111111111111111111111111111111",
+  "tools_versions": [
+    {
+      "name": "solc",
+      "version": "0.8.17"
+    },
+    {
+      "name": "forge",
+      "version": "0.2.0 (22ad954 2022-10-29T00:08:04.783591747Z)"
+    },
+    {
+      "name": "slither",
+      "version": "0.9.0"
+    }
+  ],
+  "runtime_seconds": 432544,
+  "bytecode": {
+    "size_bytes": 123,
+    "bytecode_string": "06080484938543859403850948390584305843853458043"
+  },
+  "found_swc": {
+    "summary": [
+      {
+        "id": "SWC-102",
+        "count": 2
+      },
+      {
+        "id": "SWC-113",
+        "count": 1
+      },
+      {
+        "id": "SWC-127",
+        "count": 1
+      }
+    ],
+    "source_mapping": [
+      {
+        "swc": "SWC-102",
+        "severity": "high",
+        "source_file": "./src/contractA.sol",
+        "lines_of_interest": [3, 4, 5, 6, 7, 8, 9, 10, 11],
+        "tx_flow": [
+          {
+            "target_address": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            "caller_address": "0xaffeaffeaffeaffeaffeaffeaffeaffeaffeaffe",
+            "function": {
+              "signature": "myFunction(address, uint256)",
+              "arguments": ["0x12345656", "56"],
+              "value": "123"
+            },
+            "extra": {
+              "block_number": 1234,
+              "block_timestamp": 1424354,
+              "block_gas_limit": 123,
+              "gas_limit": 1234,
+              "gas_price": 1234
+            }
+          },
+          {
+            "target_address": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            "caller_address": "0xaffeaffeaffeaffeaffeaffeaffeaffeaffeaffe",
+            "function": {
+              "signature": "myOtherFunction(uint256)",
+              "arguments": ["0"],
+              "value": "0"
+            },
+            "extra": {
+              "block_number": 1235,
+              "block_timestamp": 1445600354,
+              "block_gas_limit": 123,
+              "gas_limit": 1234,
+              "gas_price": 1234
+            }
+          }
+        ]
+      },
+      {
+        "swc": "SWC-102",
+        "severity": "high",
+        "source_file": "./src/contractA.sol",
+        "lines_of_interest": [30, 31, 32, 33, 34, 35]
+      },
+      {
+        "swc": "SWC-127",
+        "severity": "low",
+        "source_file": "./src/contractA.sol",
+        "lines_of_interest": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+      },
+      {
+        "swc": "SWC-113",
+        "severity": "medium",
+        "source_file": "./src/lib/libraryA.sol",
+        "lines_of_interest": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+      }
+    ]
+  },
+  "invariants": {
+    "totalAsserts": 14,
+    "assertsViolated": 2,
+    "source_mapping": [
+      {
+        "custom_name": "myVar is non-decreasing",
+        "source_file": "./src/contractA.sol",
+        "lines_of_interest": [50]
+      },
+      {
+        "source_file": "./src/contractB.sol",
+        "lines_of_interest": [435, 436],
+        "tx_flow": [
+          {
+            "target_address": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            "caller_address": "0xaffeaffeaffeaffeaffeaffeaffeaffeaffeaffe",
+            "function": {
+              "signature": "myFunction(address, uint256)",
+              "arguments": ["0x12345656", "56"],
+              "value": "123"
+            },
+            "extra": {
+              "block_number": 1234,
+              "block_timestamp": 1424354,
+              "block_gas_limit": 123,
+              "gas_limit": 1234,
+              "gas_price": 1234
+            }
+          },
+          {
+            "target_address": "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            "caller_address": "0xaffeaffeaffeaffeaffeaffeaffeaffeaffeaffe",
+            "function": {
+              "signature": "myOtherFunction(uint256)",
+              "arguments": ["0"],
+              "value": "0"
+            },
+            "extra": {
+              "block_number": 1235,
+              "block_timestamp": 1445600354,
+              "block_gas_limit": 123,
+              "gas_limit": 1234,
+              "gas_price": 1234
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
