@@ -30,7 +30,7 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
 
 # The assertions options are described [here](https://docs.soliditylang.org/en/latest/control-structures.html#panic-via-assert-and-error-via-require).
-docker run --rm ghcr.io/byont-ventures/analysis-tools:latest /bin/bash -c "             \
+docker run --rm ghcr.io/byont-ventures/analysis-tools:01-02-2023_11-18 /bin/bash -c "             \
     solc-select install ${solcVersion}                                                  \
     && solc-select use ${solcVersion}                                                   \
     && hevm symbolic --smttimeout 60000                                                 \

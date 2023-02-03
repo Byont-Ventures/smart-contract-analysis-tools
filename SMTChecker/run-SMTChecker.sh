@@ -18,11 +18,11 @@ fi
 mkdir -p $(dirname "$0")/results/${contractName}
 outputFile=$(dirname "$0")/results/${contractName}/${contractName}-SMTChecker.result
 
-dockerImage=ghcr.io/byont-ventures/analysis-toolbox:latest
+dockerImage=ghcr.io/byont-ventures/analysis-toolbox:01-02-2023_11-18
 
 echo ""                                                                     | tee ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
-echo "Pulling latest ${dockerImage}"                                        | tee -a ${outputFile}
+echo "Pulling image ${dockerImage}"                                         | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
 
