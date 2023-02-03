@@ -4,6 +4,7 @@ use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process;
 
 // Import the different tools
@@ -22,7 +23,6 @@ struct Config {
 
 #[derive(Deserialize)]
 struct ConfigEnvironment {
-    project_root: String,
     security_scans_rel_path: String,
     source_rel_path: String,
     remappings: Vec<String>,
@@ -76,10 +76,45 @@ fn main() {
         }
     };
 
-    let project_root_path_abs = config.environment.project_root;
-    let report_rel_path = config.report.report_output_rel_path;
-    let security_scan_path_rel = config.environment.security_scans_rel_path;
-    let contract_source_path_rel = config.environment.source_rel_path;
+    let report_rel_path: String = config.report.report_output_rel_path;
+    let security_scan_path_rel: String = config.environment.security_scans_rel_path;
+    let contract_source_path_rel: String = config.environment.source_rel_path;
+
+    let mut cur_dir: PathBuf = env::current_dir().unwrap();
+
+    let mut security_scan_path_rel_path = PathBuf::from(&security_scan_path_rel);
+
+    // Pop directories from the current path as long as the relative path to
+    // the analysis folder is non empty.
+    let usesRelativeDot: bool = security_scan_path_rel_path.to_string_lossy().chars().nth(0).unwrap() == '.';
+    let mut stopPopping = false;
+    loop {
+        stopPopping = match security_scan_path_rel_path.parent() {
+            None => true,
+            Some(p) if (usesRelativeDot && p == Path::new("")) => true,
+            Some(p) if (!usesRelativeDot && p == Path::new("")) => false,
+            Some(p) if  p != Path::new("") => false,
+            _ => {
+                println!("{}", format!("\nERROR: failed getting root path\n"));
+                process::exit(1);
+            }
+        };
+
+        if stopPopping {
+            break;
+        }
+
+        security_scan_path_rel_path.pop();
+        cur_dir.pop();
+    }
+
+    let project_root_path_abs = match cur_dir.to_str() {
+        Some(s) => s,
+        _ => {
+            println!("{}", format!("\nERROR: Converting root path to string\n"));
+            process::exit(1);
+        }
+    };
 
     for contract in config.report.contract {
         let contract_name = contract.name;

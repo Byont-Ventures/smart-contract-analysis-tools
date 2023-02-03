@@ -139,9 +139,13 @@ pub fn format_output_to_markdown(
         };
 
         let result: MythrilJsonV2 = serde_json::from_str(&mythril_jsonv2_string)?;
+        mythril_jsonv2_string = format!(
+            "\n```json\n{}\n```\n",
+            serde_json::to_string_pretty(&result).unwrap()
+        );
     }
 
-    return Ok(mythril_jsonv2_string.to_string());
+    return Ok(mythril_jsonv2_string);
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>

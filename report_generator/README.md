@@ -25,44 +25,89 @@ The following structure will be filled on each run.
     "size_bytes": 0,
     "bytecode_string": ""
   },
-  "found_swc": [
-    {
-      "id": "",
-      "count": 0
-    }
-  ],
-  "source_mapping": [
-    {
-      "swc": "",
-      "severity": "",
-      "source_file": "",
-      "lines_of_interest": [],
-      "tx_flow": [
-        {
-          "target_address": "",
-          "caller_address": "",
-          "function": {
-            "signature": "",
-            "arguments": [],
-            "value": ""
-          },
-          "extra": {
-            "block_number": 0,
-            "block_timestamp": 0,
-            "block_gas_limit": 0,
-            "gas_limit": 0,
-            "gas_price": 0
+  "found_swc": {
+    "summary": [
+      {
+        "id": "",
+        "count": 0
+      }
+    ],
+    "source_mapping": [
+      {
+        "swc": "",
+        "severity": "",
+        "source_file": "",
+        "lines_of_interest": [],
+        "tx_flow": [
+          {
+            "target_address": "",
+            "caller_address": "",
+            "function": {
+              "signature": "",
+              "arguments": [],
+              "value": ""
+            },
+            "extra": {
+              "block_number": 0,
+              "block_timestamp": 0,
+              "block_gas_limit": 0,
+              "gas_limit": 0,
+              "gas_price": 0
+            }
           }
-        }
-      ]
-    }
-  ]
+        ]
+      }
+    ]
+  },
+  "invariants": {
+    "totalAsserts": 0,
+    "assertsViolated": 0,
+    "source_mapping": [
+      {
+        "custom_name": "",
+        "source_file": "",
+        "lines_of_interest": [],
+        "tx_flow": [
+          {
+            "target_address": "",
+            "caller_address": "",
+            "function": {
+              "signature": "",
+              "arguments": [],
+              "value": ""
+            },
+            "extra": {
+              "block_number": 0,
+              "block_timestamp": 0,
+              "block_gas_limit": 0,
+              "gas_limit": 0,
+              "gas_price": 0
+            }
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
-Example content can be found in [output-data-template.json](./output-data-template.json)
+Example content can be found in [output-data-template.json](./output-data-template.json).
 
 Only the necessary data is stored. This way a new report can be generated when we would for example the layout of a report.
+
+### Description
+
+#### `found_swc`
+
+This block contains problems in the code that can be mapped to SWC IDs. This is done for generality of the findings. Each SWC ID has a corresponding advised remedy. Meaning that solving these problems becomes easier. When a corresponding `tx_flow` can be determined by our analysis it helps even more when solving the problem.
+
+#### `invariants`
+
+Invariants are conditions that should always hold. These assertions can be mentioned in the code by using `assert()` statements. The `assert()` function translates to the [`0xFE - INVALID`](https://ethereum.org/en/developers/docs/evm/opcodes/) opcode and will consume all gas if `assert(false)` is executed. This makes it clear why `assert()` should only be used for invariants.
+
+When a developer adds `// invariant: <a custom name>` above the `assert()` line, this custom name will be placed in `custom_name`.
+
+By using invariants, developers can get better custom analysis results. When a `tx_flow` can be found, resolving the problem becomes easier.
 
 ## Template
 
