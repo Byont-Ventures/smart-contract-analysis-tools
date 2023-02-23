@@ -12,9 +12,9 @@ solc_version = "0.8.17"
 [report]
 report_output_rel_path = "./report"
 
-# [[report.contract]]
-# name = "EtherStore"
-# report_custom_name = ""
+[[report.contract]]
+name = "EtherStore"
+report_custom_name = ""
 
 # [[report.contract]]
 # name = "VeriToken"
