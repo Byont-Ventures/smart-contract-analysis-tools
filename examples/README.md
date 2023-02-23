@@ -16,7 +16,7 @@ $ source ~/.bashrc
 $ foundryup
 ```
 
-```bash
+```bashcd
 $ git submodule update --init --recursive
 ```
 
@@ -46,20 +46,22 @@ $ cp ./security-scans/analysis-config-example.toml ./analysis-config.toml
 Update `./analysis-config.toml` as seen fit. The run the report generator.
 
 ```bash
-$ yarn --cwd ../ run   \
-    scan:generate-report            \
+$ yarn --cwd ../ run            \
+    scan:generate-report        \
+    ${PWD}/../                  \
+    ./examples                  \
     ${PWD}/analysis-config.toml
 ```
 
 kevm
 
 ```bash
-$ yarn --cwd ../ run   \
-    scan:kevm                       \
-    ${PWD}                          \
-    ../                \
-    ./src/smart-contracts           \
-    ./kevm-specs                    \
+$ yarn --cwd ../ run        \
+    scan:kevm               \
+    ${PWD}                  \
+    ../                     \
+    ./src/smart-contracts   \
+    ./kevm-specs            \
     VeriToken
 ```
 

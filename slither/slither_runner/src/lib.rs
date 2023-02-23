@@ -22,15 +22,16 @@ struct SlitherConfig {
 }
 
 pub fn run_slither(
-    project_root_path_abs: &str,
-    security_scan_path_rel: &str,
-    contract_source_path_rel: &str,
+    base_root: &str,
+    project_root_path_rel_base: &str,
+    security_scan_path_rel_project: &str,
+    contract_source_path_rel_project: &str,
     contract_name: &str,
     solc_version: &str,
     remappings: &Vec<String>,
 ) -> String {
     let slither_config_path =
-        format!("{project_root_path_abs}/{security_scan_path_rel}/slither/slither.config.json");
+        format!("{base_root}/{project_root_path_rel_base}/{security_scan_path_rel_project}/slither/slither.config.json");
 
     let slither_config = fs::read_to_string(&slither_config_path)
         .expect(&format!("ERROR: Cannot read {slither_config_path}!"));
@@ -57,10 +58,10 @@ pub fn run_slither(
     file.write_all(json_string.as_bytes());
 
     let command = format!(
-        "{project_root_path_abs}/{security_scan_path_rel}/slither/run-slither.sh {} {} {} {} {}",
-        project_root_path_abs,
-        security_scan_path_rel,
-        contract_source_path_rel,
+        "{base_root}/{project_root_path_rel_base}/{security_scan_path_rel_project}/slither/run-slither.sh {} {} {} {} {}",
+        base_root,
+        format!("{project_root_path_rel_base}/{security_scan_path_rel_project}"),
+        format!("{project_root_path_rel_base}/{contract_source_path_rel_project}"),
         contract_name,
         solc_version
     );
@@ -170,6 +171,8 @@ pub fn format_output_to_markdown(
 ) -> Result<String> {
     let slither_json_path =
         format!("{project_root_path_abs}/{security_scan_path_rel}/slither/results/{contract_name}/{contract_name}-output.json");
+
+    println!("{}", slither_json_path);
 
     let contents =
         fs::read_to_string(&slither_json_path).expect("Should have been able to read the file");

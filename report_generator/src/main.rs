@@ -64,19 +64,12 @@ fn main() {
         process::exit(1);
     }
 
-    let config_path = &args[1];
+    let base_root_abs = &args[1];
+    let project_root_rel_base = &args[2];
+    let config_path = &args[3];
+
     let config_str = fs::read_to_string(&config_path)
         .expect(&format!("ERROR: Cannot read config file at {config_path}"));
-
-    let mut project_root_path_abs_pathbuf = PathBuf::from(config_path);
-    project_root_path_abs_pathbuf.pop();
-    let project_root_path_abs = match project_root_path_abs_pathbuf.to_str() {
-        Some(s) => s,
-        _ => {
-            println!("{}", format!("\nERROR: Converting root path to string\n"));
-            process::exit(1);
-        }
-    };
 
     let config: Config = match toml::from_str(&config_str) {
         Ok(c) => c,
@@ -86,9 +79,19 @@ fn main() {
         }
     };
 
+    let mut project_root_path_abs_pathbuf = PathBuf::from(base_root_abs);
+    project_root_path_abs_pathbuf.push(project_root_rel_base);
+    let project_root_path_abs = match project_root_path_abs_pathbuf.to_str() {
+        Some(s) => s,
+        _ => {
+            println!("{}", format!("\nERROR: Converting root path to string\n"));
+            process::exit(1);
+        }
+    };
+
     let report_rel_path: String = config.report.report_output_rel_path;
-    let security_scan_path_rel: String = config.environment.security_scans_rel_path;
-    let contract_source_path_rel: String = config.environment.source_rel_path;
+    let security_scan_path_rel_from_project: String = config.environment.security_scans_rel_path;
+    let contract_source_path_rel_from_project: String = config.environment.source_rel_path;
 
     for contract in config.report.contract {
         let contract_name = contract.name;
@@ -118,9 +121,10 @@ fn main() {
             write_to_report(&mut file, &slither_header);
 
             let slither_result = slither::run_slither(
-                &project_root_path_abs,
-                &security_scan_path_rel,
-                &contract_source_path_rel,
+                &base_root_abs,
+                &project_root_rel_base,
+                &security_scan_path_rel_from_project,
+                &contract_source_path_rel_from_project,
                 &contract_name,
                 &config.environment.solc_version,
                 &config.environment.remappings,
@@ -128,7 +132,7 @@ fn main() {
 
             let slither_markdown_content = match slither::format_output_to_markdown(
                 &project_root_path_abs,
-                &security_scan_path_rel,
+                &security_scan_path_rel_from_project,
                 &contract_name,
             ) {
                 Ok(s) => s,
@@ -138,52 +142,52 @@ fn main() {
             write_to_report(&mut file, &slither_markdown_content);
         }
 
-        //---------------
-        // SMTChecker
-        //---------------
-        if config.smtchecker.enabled {
-            let smtchecker_header = "## SMTChecker\n\n";
-            write_to_report(&mut file, &smtchecker_header);
+        // //---------------
+        // // SMTChecker
+        // //---------------
+        // if config.smtchecker.enabled {
+        //     let smtchecker_header = "## SMTChecker\n\n";
+        //     write_to_report(&mut file, &smtchecker_header);
 
-            let smtchecker_result = smtchecker::run_smtchecker(
-                &project_root_path_abs,
-                &security_scan_path_rel,
-                &contract_source_path_rel,
-                &contract_name,
-                &config.environment.solc_version,
-                &config.environment.remappings,
-            );
+        //     let smtchecker_result = smtchecker::run_smtchecker(
+        //         &project_root_path_abs,
+        //         &security_scan_path_rel,
+        //         &contract_source_path_rel,
+        //         &contract_name,
+        //         &config.environment.solc_version,
+        //         &config.environment.remappings,
+        //     );
 
-            write_to_report(&mut file, &smtchecker_result.replace("\n", "\n\n"));
-        }
+        //     write_to_report(&mut file, &smtchecker_result.replace("\n", "\n\n"));
+        // }
 
-        //---------------
-        // Mythril
-        //---------------
-        if config.mythril.enabled {
-            let mythril_header = "## Mythril\n\n";
-            write_to_report(&mut file, &mythril_header);
+        // //---------------
+        // // Mythril
+        // //---------------
+        // if config.mythril.enabled {
+        //     let mythril_header = "## Mythril\n\n";
+        //     write_to_report(&mut file, &mythril_header);
 
-            let mythril_result = mythril::run_mythril(
-                &project_root_path_abs,
-                &security_scan_path_rel,
-                &contract_source_path_rel,
-                &contract_name,
-                &config.environment.solc_version,
-                &config.environment.remappings,
-            );
+        //     let mythril_result = mythril::run_mythril(
+        //         &project_root_path_abs,
+        //         &security_scan_path_rel,
+        //         &contract_source_path_rel,
+        //         &contract_name,
+        //         &config.environment.solc_version,
+        //         &config.environment.remappings,
+        //     );
 
-            let mythril_markdown_content = match mythril::format_output_to_markdown(
-                &project_root_path_abs,
-                &security_scan_path_rel,
-                &contract_name,
-            ) {
-                Ok(s) => s,
-                _ => "".to_string(),
-            };
+        //     let mythril_markdown_content = match mythril::format_output_to_markdown(
+        //         &project_root_path_abs,
+        //         &security_scan_path_rel,
+        //         &contract_name,
+        //     ) {
+        //         Ok(s) => s,
+        //         _ => "".to_string(),
+        //     };
 
-            write_to_report(&mut file, &mythril_markdown_content.replace("\n", "\n\n"));
-        }
+        //     write_to_report(&mut file, &mythril_markdown_content.replace("\n", "\n\n"));
+        // }
     }
 }
 
