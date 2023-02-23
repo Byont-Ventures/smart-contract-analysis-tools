@@ -1,0 +1,39 @@
+
+=================================================================
+Pulling image ghcr.io/byont-ventures/analysis-toolbox:01-02-2023_11-18
+=================================================================
+
+
+=================================================================
+Flatten the contract to be verified
+=================================================================
+
+Flattened file written at .//flattened/VeriToken-flat.sol
+
+=================================================================
+Generate helper modules for kevm to make writing claims easier
+=================================================================
+
+INFO 2023-02-23 13:19:04,430 kevm_pyk.solc_to_k - Running: solc --standard-json
+INFO 2023-02-23 13:19:04,544 kevm_pyk.solc_to_k - Timing [0.114]: solc --standard-json
+INFO 2023-02-23 13:19:04,544 kevm_pyk.solc_to_k - Completed: solc --standard-json
+WARNING 2023-02-23 13:19:04,545 kevm_pyk.solc_to_k - solc warning:
+Warning: Function state mutability can be restricted to pure
+   --> VeriToken-flat.sol:518:5:
+    |
+518 |     function decimals() public view override returns (uint8) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+0m1.719s 0m1.372s 0m0.271s python3 -m kevm_pyk solc-to-k /prj/.//flattened/VeriToken-flat.sol VeriToken --definition /root/evm-semantics/.build/usr/lib/kevm/haskell --profile --main-module VeriToken-VERIFICATION --definition /root/evm-semantics/.build/usr/lib/kevm/haskell -I /root/evm-semantics/.build/usr/lib/kevm/include/kframework -I /root/evm-semantics/.build/usr/lib/kevm/blockchain-k-plugin/include/kframework --verbose
+
+=================================================================
+Generate the required files for verification
+=================================================================
+
+
+=================================================================
+Verify the the Solidity contract
+=================================================================
+
+#Top
