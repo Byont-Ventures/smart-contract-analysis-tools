@@ -20,6 +20,18 @@ outputFile=$(dirname "$0")/results/${contractName}/${contractName}-Mythril.resul
 
 dockerImage=ghcr.io/byont-ventures/analysis-toolbox:01-02-2023_11-18
 
+mythrilSettings="                       \
+    --transaction-count 2               \
+    --parallel-solving                  \
+    --strategy bfs                      \
+    --max-depth 64                      \
+    --call-depth-limit 2                \
+    --no-onchain-data                   \
+    --pruning-factor 1                  \
+    --solv ${solcVersion}               \
+    --solc-args \"--base-path /prj\"    \
+    --solc-json /settings.json"
+
 echo ""                                                                     | tee ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo "Pulling image ${dockerImage}"                                         | tee -a ${outputFile}
@@ -43,16 +55,7 @@ docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c " \
     && myth -v 4                                                                \
     analyze                                                                     \
     -o jsonv2                                                                   \
-    --transaction-count 2                                                       \
-    --parallel-solving                                                          \
-    --strategy bfs                                                              \
-    --max-depth 64                                                              \
-    --call-depth-limit 2                                                        \
-    --no-onchain-data                                                           \
-    --pruning-factor 1                                                          \
-    --solv ${solcVersion}                                                       \
-    --solc-args \"--base-path /prj\"                                            \
-    --solc-json /settings.json                                                  \
+    ${mythrilSettings}                                                          \
     -g /prj/${pathToSecurityScansFromRoot}/mythril/results/${contractName}/${contractName}-graph-Mythril.html   \
      ./${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}
 
@@ -71,14 +74,5 @@ docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c " \
     && myth -v 4                                                                \
     analyze                                                                     \
     -o jsonv2                                                                   \
-    --transaction-count 2                                                       \
-    --parallel-solving                                                          \
-    --strategy bfs                                                              \
-    --max-depth 64                                                              \
-    --call-depth-limit 2                                                        \
-    --no-onchain-data                                                           \
-    --pruning-factor 1                                                          \
-    --solv ${solcVersion}                                                       \
-    --solc-args \"--base-path /prj\"                                            \
-    --solc-json /settings.json                                                  \
+    ${mythrilSettings}                                                          \
      ./${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}
