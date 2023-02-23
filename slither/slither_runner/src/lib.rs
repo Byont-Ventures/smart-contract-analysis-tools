@@ -33,6 +33,11 @@ pub fn run_slither(
     let slither_config_path =
         format!("{base_root}/{project_root_path_rel_base}/{security_scan_path_rel_project}/slither/slither.config.json");
 
+    let slither_config_tmp_path =
+        format!("{base_root}/{project_root_path_rel_base}/{security_scan_path_rel_project}/slither/slither.config.json.tmp");
+
+    fs::copy(&slither_config_path, &slither_config_tmp_path).unwrap();
+
     let slither_config = fs::read_to_string(&slither_config_path)
         .expect(&format!("ERROR: Cannot read {slither_config_path}!"));
 
@@ -76,6 +81,9 @@ pub fn run_slither(
         Ok(v) => v,
         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
     };
+
+    fs::remove_file(&slither_config_path).unwrap();
+    fs::rename(&slither_config_tmp_path, &slither_config_path).unwrap();
 
     return output.to_string();
 }
