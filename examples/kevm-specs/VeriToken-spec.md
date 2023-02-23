@@ -17,7 +17,7 @@ File [VeriToken.sol](../smart-contracts/src/VeriToken.sol) contains the solidity
 ---
 
 ```k
-requires "../security-scans/kevm/generated/VeriToken-bin-runtime.k"
+requires "../../kevm/generated/VeriToken-bin-runtime.k"
 
 module VERIFICATION
     imports EDSL

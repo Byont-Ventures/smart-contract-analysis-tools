@@ -56,12 +56,13 @@ $ yarn --cwd ../ run            \
 kevm
 
 ```bash
-$ yarn --cwd ../ run        \
-    scan:kevm               \
-    ${PWD}                  \
-    ../                     \
-    ./src/smart-contracts   \
-    ./kevm-specs            \
+$ yarn --cwd ../ run                \
+    scan:kevm                       \
+    ${PWD}/../                      \
+    ./                              \
+    ./examples/src/smart-contracts  \
+    ./examples/kevm-specs           \
+    ./examples                      \
     VeriToken
 ```
 

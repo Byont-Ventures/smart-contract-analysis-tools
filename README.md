@@ -112,23 +112,25 @@ The specification file **MUST** have the name `<contract name>-spec.md`. An exam
 From the root of the project repository that uses this as a submodule run the following command
 
 ```bash
-$ yarn --cwd ./security-scans run                   \
-    scan:kevm                                       \
-    ${PWD}                                          \
-    <Relative path to the this submodule>           \
-    <Relative path to the contract source folder>   \
-    <Relative path to the kevm specs folder>        \
-    <contract name without .sol>
+$ yarn --cwd < path to scanner root > run                                   \
+    scan:kevm                                                               \
+    < absolute path to repository root >                                    \
+    < relative path to the security scanners folder from the repo root >    \
+    < relative path to the project contracts folder from repo root >        \
+    < relative path to the kevm specs folder from the repo root >           \
+    < relative path to the foundry project folder from the repo root >      \
+    < contract name without .sol >
 ```
 
 As an example:
 
 ```bash
-$ yarn --cwd ./security-scans run   \
+$ yarn --cwd ./ run                 \
     scan:kevm                       \
     ${PWD}                          \
-    ./security-scans                \
-    ./src/smart-contracts           \
-    ./kevm-specs                    \
+    ./                              \
+    ./examples/src/smart-contracts  \
+    ./examples/kevm-specs           \
+    ./examples                      \
     VeriToken
 ```

@@ -4,7 +4,8 @@ projectRoot=$1
 pathToSecurityScansFromRoot=$2
 pathToSourceFileFromRoot=$3
 pathToKevmSpecFromRoot=$4
-contractName=$5
+pathToSourceFoundryProjectFromRoot=$5
+contractName=$6
 
 solcVersion=0.8.13
 # Even though 0.8.17 uses LONDON, there seem to be a problem with
@@ -51,9 +52,9 @@ echo "================================================================="    | te
 echo ""                                                                     | tee -a ${outputFile}
 
 docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c " \
-    cd /prj/                                                                                    \
-    && mkdir -p ${pathToSecurityScansFromRoot}/flattened                                        \
-    && forge flatten ${pathToSourceFileFromRoot}/${contractName}.sol                            \
+    cd /prj/                                                                                                        \
+    && mkdir -p ${pathToSecurityScansFromRoot}/flattened                                                            \
+    && forge flatten --root ${pathToSourceFoundryProjectFromRoot} ${pathToSourceFileFromRoot}/${contractName}.sol   \
     --output ${pathToSecurityScansFromRoot}/flattened/${contractName}-flat.sol" 2>&1 | tee -a ${outputFile}
 
 echo ""                                                                     | tee -a ${outputFile}
