@@ -9,24 +9,31 @@ use std::process::Command;
 use std::str;
 
 pub fn run_mythril(
-    project_root_path_abs: &str,
-    security_scan_path_rel: &str,
-    contract_source_path_rel: &str,
+    base_root: &str,
+    project_root_path_rel_base: &str,
+    security_scan_path_rel_project: &str,
+    contract_source_path_rel_project: &str,
     contract_name: &str,
     solc_version: &str,
     remappings: &Vec<String>,
 ) -> String {
     let mut remappings_formatted = "".to_owned();
     for r in remappings {
-        remappings_formatted.push_str(format!("{r} ").as_str());
+        remappings_formatted.push_str(r#"""#);
+        remappings_formatted.push_str(format!("{r}").as_str());
+        if (r != remappings.last().unwrap()) {
+            remappings_formatted.push_str(r#"", "#);
+        } else {
+            remappings_formatted.push_str(r#"""#);
+        }
     }
     remappings_formatted = format!("'{remappings_formatted}'");
 
     let command = format!(
-        "{project_root_path_abs}/{security_scan_path_rel}/mythril/run-mythril.sh {} {} {} {} {} {}",
-        project_root_path_abs,
-        security_scan_path_rel,
-        contract_source_path_rel,
+        "{base_root}/{project_root_path_rel_base}/{security_scan_path_rel_project}/mythril/run-mythril.sh {} {} {} {} {} {}",
+        base_root,
+        format!("{project_root_path_rel_base}/{security_scan_path_rel_project}"),
+        format!("{project_root_path_rel_base}/{contract_source_path_rel_project}"),
         contract_name,
         solc_version,
         remappings_formatted
@@ -109,6 +116,7 @@ struct MythrilJsonV2MetaExecutionInfo {
 }
 
 pub fn format_output_to_markdown(
+    base_path_abs: &str,
     project_root_path_abs: &str,
     security_scan_path_rel: &str,
     contract_name: &str,

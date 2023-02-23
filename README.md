@@ -14,19 +14,15 @@ An example project that makes use of this repository is [smart-contract-analysis
 - Docker should be installed
   - Make sure that Docker can run without sudo ([docs](https://docs.docker.com/engine/install/linux-postinstall/)).
 
+```bashcd
+$ git submodule update --init --recursive
+```
+
 ## Installing Rust
 
 ```bash
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 $ source ~/.bashrc
-```
-
-## Adding as submodule
-
-In the root of your project run the following command. Afterwards, this repository can be found as a submodule under `<your project root>/security-scans/`.
-
-```bash
-$ git submodule add https://github.com/Byont-Ventures/smart-contract-analysis-tools security-scans
 ```
 
 ## Generating a report
@@ -40,9 +36,21 @@ In this configuration file you can define the required paths for your project. Y
 After updating the configuration run the following command from your project root. Depending on which tools are enabled it can take from several seconds to an hour.
 
 ```bash
-$ yarn --cwd <path to this submodule> run   \
-    scan:generate-report                    \
-    <absolute path to config file>
+$ yarn --cwd < path to this security scanner root > run \
+    scan:generate-report                                \
+    < absolute path to repository root >                \
+    < relative path from repo root to source project >  \
+    < absolute path to config toml file >
+```
+
+For example:
+
+```bash
+$ yarn --cwd ./ run             \
+    scan:generate-report        \
+    ${PWD}                      \
+    ./examples                  \
+    ${PWD}/examples/analysis-config.toml
 ```
 
 # Available tools
@@ -100,23 +108,25 @@ The specification file **MUST** have the name `<contract name>-spec.md`. An exam
 From the root of the project repository that uses this as a submodule run the following command
 
 ```bash
-$ yarn --cwd ./security-scans run                   \
-    scan:kevm                                       \
-    ${PWD}                                          \
-    <Relative path to the this submodule>           \
-    <Relative path to the contract source folder>   \
-    <Relative path to the kevm specs folder>        \
-    <contract name without .sol>
+$ yarn --cwd < path to scanner root > run                                   \
+    scan:kevm                                                               \
+    < absolute path to repository root >                                    \
+    < relative path to the security scanners folder from the repo root >    \
+    < relative path to the project contracts folder from repo root >        \
+    < relative path to the kevm specs folder from the repo root >           \
+    < relative path to the foundry project folder from the repo root >      \
+    < contract name without .sol >
 ```
 
 As an example:
 
 ```bash
-$ yarn --cwd ./security-scans run   \
+$ yarn --cwd ./ run                 \
     scan:kevm                       \
     ${PWD}                          \
-    ./security-scans                \
-    ./src/smart-contracts           \
-    ./kevm-specs                    \
+    ./                              \
+    ./examples/src/smart-contracts  \
+    ./examples/kevm-specs           \
+    ./examples                      \
     VeriToken
 ```

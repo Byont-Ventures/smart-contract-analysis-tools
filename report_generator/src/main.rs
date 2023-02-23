@@ -64,7 +64,10 @@ fn main() {
         process::exit(1);
     }
 
-    let config_path = &args[1];
+    let base_root_abs = &args[1];
+    let project_root_rel_base = &args[2];
+    let config_path = &args[3];
+
     let config_str = fs::read_to_string(&config_path)
         .expect(&format!("ERROR: Cannot read config file at {config_path}"));
 
@@ -76,45 +79,19 @@ fn main() {
         }
     };
 
-    let report_rel_path: String = config.report.report_output_rel_path;
-    let security_scan_path_rel: String = config.environment.security_scans_rel_path;
-    let contract_source_path_rel: String = config.environment.source_rel_path;
-
-    let mut cur_dir: PathBuf = env::current_dir().unwrap();
-
-    let mut security_scan_path_rel_path = PathBuf::from(&security_scan_path_rel);
-
-    // Pop directories from the current path as long as the relative path to
-    // the analysis folder is non empty.
-    let usesRelativeDot: bool = security_scan_path_rel_path.to_string_lossy().chars().nth(0).unwrap() == '.';
-    let mut stopPopping = false;
-    loop {
-        stopPopping = match security_scan_path_rel_path.parent() {
-            None => true,
-            Some(p) if (usesRelativeDot && p == Path::new("")) => true,
-            Some(p) if (!usesRelativeDot && p == Path::new("")) => false,
-            Some(p) if  p != Path::new("") => false,
-            _ => {
-                println!("{}", format!("\nERROR: failed getting root path\n"));
-                process::exit(1);
-            }
-        };
-
-        if stopPopping {
-            break;
-        }
-
-        security_scan_path_rel_path.pop();
-        cur_dir.pop();
-    }
-
-    let project_root_path_abs = match cur_dir.to_str() {
+    let mut project_root_path_abs_pathbuf = PathBuf::from(base_root_abs);
+    project_root_path_abs_pathbuf.push(project_root_rel_base);
+    let project_root_path_abs = match project_root_path_abs_pathbuf.to_str() {
         Some(s) => s,
         _ => {
             println!("{}", format!("\nERROR: Converting root path to string\n"));
             process::exit(1);
         }
     };
+
+    let report_rel_path: String = config.report.report_output_rel_path;
+    let security_scan_path_rel_from_project: String = config.environment.security_scans_rel_path;
+    let contract_source_path_rel_from_project: String = config.environment.source_rel_path;
 
     for contract in config.report.contract {
         let contract_name = contract.name;
@@ -144,17 +121,19 @@ fn main() {
             write_to_report(&mut file, &slither_header);
 
             let slither_result = slither::run_slither(
-                &project_root_path_abs,
-                &security_scan_path_rel,
-                &contract_source_path_rel,
+                &base_root_abs,
+                &project_root_rel_base,
+                &security_scan_path_rel_from_project,
+                &contract_source_path_rel_from_project,
                 &contract_name,
                 &config.environment.solc_version,
                 &config.environment.remappings,
             );
 
             let slither_markdown_content = match slither::format_output_to_markdown(
+                &base_root_abs,
                 &project_root_path_abs,
-                &security_scan_path_rel,
+                &security_scan_path_rel_from_project,
                 &contract_name,
             ) {
                 Ok(s) => s,
@@ -164,24 +143,24 @@ fn main() {
             write_to_report(&mut file, &slither_markdown_content);
         }
 
-        //---------------
-        // SMTChecker
-        //---------------
-        if config.smtchecker.enabled {
-            let smtchecker_header = "## SMTChecker\n\n";
-            write_to_report(&mut file, &smtchecker_header);
+        // //---------------
+        // // SMTChecker
+        // //---------------
+        // if config.smtchecker.enabled {
+        //     let smtchecker_header = "## SMTChecker\n\n";
+        //     write_to_report(&mut file, &smtchecker_header);
 
-            let smtchecker_result = smtchecker::run_smtchecker(
-                &project_root_path_abs,
-                &security_scan_path_rel,
-                &contract_source_path_rel,
-                &contract_name,
-                &config.environment.solc_version,
-                &config.environment.remappings,
-            );
+        //     let smtchecker_result = smtchecker::run_smtchecker(
+        //         &project_root_path_abs,
+        //         &security_scan_path_rel,
+        //         &contract_source_path_rel,
+        //         &contract_name,
+        //         &config.environment.solc_version,
+        //         &config.environment.remappings,
+        //     );
 
-            write_to_report(&mut file, &smtchecker_result.replace("\n", "\n\n"));
-        }
+        //     write_to_report(&mut file, &smtchecker_result.replace("\n", "\n\n"));
+        // }
 
         //---------------
         // Mythril
@@ -191,17 +170,19 @@ fn main() {
             write_to_report(&mut file, &mythril_header);
 
             let mythril_result = mythril::run_mythril(
-                &project_root_path_abs,
-                &security_scan_path_rel,
-                &contract_source_path_rel,
+                &base_root_abs,
+                &project_root_rel_base,
+                &security_scan_path_rel_from_project,
+                &contract_source_path_rel_from_project,
                 &contract_name,
                 &config.environment.solc_version,
                 &config.environment.remappings,
             );
 
             let mythril_markdown_content = match mythril::format_output_to_markdown(
+                &base_root_abs,
                 &project_root_path_abs,
-                &security_scan_path_rel,
+                &security_scan_path_rel_from_project,
                 &contract_name,
             ) {
                 Ok(s) => s,

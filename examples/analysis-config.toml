@@ -1,5 +1,5 @@
 [environment]
-security_scans_rel_path = "./security-scans"
+security_scans_rel_path = "../"
 source_rel_path = "./src/smart-contracts"
 remappings = [
     "ds-test/=libs/forge-std/lib/ds-test/src/",
@@ -13,15 +13,19 @@ solc_version = "0.8.17"
 report_output_rel_path = "./report"
 
 [[report.contract]]
-name = "VeriToken"
+name = "EtherStore"
 report_custom_name = ""
 
-[[report.contract]]
-name = "VeriAuctionTokenForEth_problems"
-report_custom_name = ""
+# [[report.contract]]
+# name = "VeriToken"
+# report_custom_name = ""
+
+# [[report.contract]]
+# name = "VeriAuctionTokenForEth_problems"
+# report_custom_name = ""
 
 [mythril]
-enabled = false
+enabled = true
 
 [slither]
 enabled = true

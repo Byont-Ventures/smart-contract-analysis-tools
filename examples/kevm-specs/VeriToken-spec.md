@@ -10,8 +10,6 @@ requires "lemmas/lemmas.k"
 
 ---
 
-This template is based on the example specification from the demo repository [smart-contract-analysis-tools-example](https://github.com/Byont-Ventures/smart-contract-analysis-tools-example).
-
 File [VeriToken.sol](../smart-contracts/src/VeriToken.sol) contains the solidity code being verified.
 
 ## Verification module
@@ -19,7 +17,7 @@ File [VeriToken.sol](../smart-contracts/src/VeriToken.sol) contains the solidity
 ---
 
 ```k
-requires "../security-scans/kevm/generated/VeriToken-bin-runtime.k"
+requires "../../kevm/generated/VeriToken-bin-runtime.k"
 
 module VERIFICATION
     imports EDSL
@@ -64,7 +62,7 @@ claim [decimals]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
 
-    <callStack> .List                                          </callStack>
+    <callStack> .List                                      </callStack>
     <program>   #binRuntime(VeriToken)                         </program>
     <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
 
@@ -77,10 +75,10 @@ claim [decimals]:
     <gas>        #gas(_VGAS) => ?_ </gas>
     <callValue>  0           => ?_ </callValue>
 
-    <callData>   VeriToken.decimals()       </callData>
-    <k>          #execute   => #halt ...    </k>
-    <output>     .ByteArray => #buf(32, 6)  </output>
-    <statusCode> _          => EVMC_SUCCESS </statusCode>
+    <callData>   VeriToken.decimals()             </callData>
+    <k>          #execute   => #halt ...          </k>
+    <output>     .ByteArray => #buf(32, 6)        </output>
+    <statusCode> _          => EVMC_SUCCESS       </statusCode>
 
     <account>
         <acctID> ACCTID </acctID>
@@ -95,7 +93,7 @@ claim [totalSupply]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
 
-    <callStack> .List                                          </callStack>
+    <callStack> .List                                      </callStack>
     <program>   #binRuntime(VeriToken)                         </program>
     <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
 
@@ -107,8 +105,9 @@ claim [totalSupply]:
     <endPC>      _           => ?_ </endPC>
     <gas>        #gas(_VGAS) => ?_ </gas>
     <callValue>  0           => ?_ </callValue>
+    <substate> _             => ?_ </substate>
 
-    <callData>   VeriToken.totalSupply()             </callData>
+    <callData>   VeriToken.totalSupply()                 </callData>
     <k>          #execute   => #halt ...             </k>
     <output>     .ByteArray => #buf(32, TOTALSUPPLY) </output>
     <statusCode> _          => EVMC_SUCCESS          </statusCode>
@@ -120,7 +119,7 @@ claim [totalSupply]:
      </account>
 
     requires TOTALSUPPLY_KEY ==Int #loc(VeriToken._totalSupply)
-        andBool TOTALSUPPLY  ==Int #lookup(ACCT_STORAGE, TOTALSUPPLY_KEY)
+        andBool TOTALSUPPLY ==Int #lookup(ACCT_STORAGE, TOTALSUPPLY_KEY)
 ```
 
 ### Calling approve(address spender, uint256 amount) works
@@ -130,10 +129,10 @@ claim [approve.success]:
     <mode>     NORMAL   </mode>
     <schedule> ISTANBUL </schedule>
 
-    <callStack> .List                                          </callStack>
+    <callStack> .List                                      </callStack>
     <program>   #binRuntime(VeriToken)                         </program>
     <jumpDests> #computeValidJumpDests(#binRuntime(VeriToken)) </jumpDests>
-    <static>    false                                          </static>
+    <static>    false                                      </static>
 
     <id>         ACCTID      => ?_ </id>
     <caller>     OWNER       => ?_ </caller>
@@ -147,9 +146,9 @@ claim [approve.success]:
     <substate> _             => ?_ </substate>
 
     <callData>   VeriToken.approve(SPENDER, AMOUNT) </callData>
-    <k>          #execute   => #halt ...            </k>
-    <output>     .ByteArray => #buf(32, 1)          </output>
-    <statusCode> _          => EVMC_SUCCESS         </statusCode>
+    <k>          #execute   => #halt ...        </k>
+    <output>     .ByteArray => #buf(32, 1)      </output>
+    <statusCode> _          => EVMC_SUCCESS     </statusCode>
 
     <account>
         <acctID> ACCTID </acctID>
@@ -187,9 +186,9 @@ claim [approve.revert]:
     <substate> _             => ?_ </substate>
 
     <callData>   VeriToken.approve(SPENDER, AMOUNT) </callData>
-    <k>          #execute   => #halt ...            </k>
-    <output>     _          => ?_                   </output>
-    <statusCode> _          => EVMC_REVERT          </statusCode>
+    <k>          #execute   => #halt ...        </k>
+    <output>     _          => ?_               </output>
+    <statusCode> _          => EVMC_REVERT      </statusCode>
 
     <acctID> ACCTID </acctID>
         <account>
@@ -226,10 +225,10 @@ claim [transfer.success]:
     <callValue>  0           => ?_ </callValue>
     <substate>   _           => ?_ </substate>
 
-    <callData>   VeriToken.transfer(RECEIVER, AMOUNT)    </callData>
-    <k>          #execute   => #halt ...                 </k>
-    <output>     .ByteArray => #buf(32, bool2Word(true)) </output>
-    <statusCode> _          => EVMC_SUCCESS              </statusCode>
+    <callData>   VeriToken.transfer(RECEIVER, AMOUNT)       </callData>
+    <k>          #execute   => #halt ...                    </k>
+    <output>     .ByteArray => #buf(32, bool2Word(true))    </output>
+    <statusCode> _          => EVMC_SUCCESS                 </statusCode>
 
     <account>
         <acctID> ACCTID </acctID>

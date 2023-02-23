@@ -1,0 +1,32 @@
+# compiled output
+/dist
+/tmp
+/out-tsc
+
+# dependencies
+**node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# dotenv environment variables file
+.env
+
+# Secrets
+**/secrets.json
+
+# Foundry
+**/**/cache
+**/**/out
+
+# Hardhat
+**/**/artifacts
+**/**/.openzeppelin
+**/**/typechain-types
+
+# Custom
+**/**/solc-out
