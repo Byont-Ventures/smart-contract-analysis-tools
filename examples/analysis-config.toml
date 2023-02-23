@@ -2,27 +2,27 @@
 security_scans_rel_path = "../"
 source_rel_path = "./src/smart-contracts"
 remappings = [
-    "ds-test/=libs/forge-std/lib/ds-test/src/",
-    "forge-std/=libs/forge-std/src/",
-    "@openzeppelin/=node_modules/@openzeppelin/",
-    "@smart-contracts=src/smart-contracts/",
+    "ds-test/=examples/libs/forge-std/lib/ds-test/src/",
+    "forge-std/=examples/libs/forge-std/src/",
+    "@openzeppelin/=examples/node_modules/@openzeppelin/",
+    "@smart-contracts=examples/src/smart-contracts/",
 ]
 solc_version = "0.8.17"
 
 [report]
 report_output_rel_path = "./report"
 
-[[report.contract]]
-name = "EtherStore"
-report_custom_name = ""
+# [[report.contract]]
+# name = "EtherStore"
+# report_custom_name = ""
 
 # [[report.contract]]
 # name = "VeriToken"
 # report_custom_name = ""
 
-# [[report.contract]]
-# name = "VeriAuctionTokenForEth_problems"
-# report_custom_name = ""
+[[report.contract]]
+name = "VeriAuctionTokenForEth_problems"
+report_custom_name = ""
 
 [mythril]
 enabled = true
