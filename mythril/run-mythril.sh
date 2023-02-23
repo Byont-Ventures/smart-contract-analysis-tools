@@ -29,33 +29,32 @@ echo ""                                                                     | te
 docker pull ${dockerImage}
 
 echo ""                                                                     | tee -a ${outputFile}
-echo "================================================================="    | tee -a ${outputFile}
-echo "Generate bin-runtime: solc ${solcVersion}"                            | tee -a ${outputFile}
-echo "================================================================="    | tee -a ${outputFile}
-echo ""                                                                     | tee -a ${outputFile}
-
-docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "     \
-    solc --base-path /prj                                           \
-        ${remappings}                                               \
-        -o /prj/${pathToSourceFileFromRoot}/solc-out                \
-        --opcodes                                                   \
-        --asm                                                       \
-        --bin-runtime                                               \
-        --overwrite                                                 \
-        /prj/${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}
-
-echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}    
 echo "Run Mythril: callgraph"                                               | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}
 echo ""                                                                     | tee -a ${outputFile}
-  
-docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                                                 \
-    myth -v 4                                                                                                   \
-    analyze                                                                                                     \
+
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c " \
+    sed -i '67s/match\(.*\)/search(r\"\d+.\d+.\d+\", main_version).group(0)/' /mythril/mythril/mythril/mythril_disassembler.py  \
+    && sed -i '67s/d+/\\\d+/g' /mythril/mythril/mythril/mythril_disassembler.py                                                 \
+    && sed -i \"68s/^$/        log.info(main_version_number)/\" /mythril/mythril/mythril/mythril_disassembler.py                \
+    && echo '{  \"remappings\": [ ${remappings} ] }' > /settings.json           \
+    && cd /prj                                                                  \
+    && myth -v 4                                                                \
+    analyze                                                                     \
+    -o jsonv2                                                                   \
+    --transaction-count 2                                                       \
+    --parallel-solving                                                          \
+    --strategy bfs                                                              \
+    --max-depth 64                                                              \
+    --call-depth-limit 2                                                        \
+    --no-onchain-data                                                           \
+    --pruning-factor 1                                                          \
+    --solv ${solcVersion}                                                       \
+    --solc-args \"--base-path /prj\"                                            \
+    --solc-json /settings.json                                                  \
     -g /prj/${pathToSecurityScansFromRoot}/mythril/results/${contractName}/${contractName}-graph-Mythril.html   \
-    -f /prj/${pathToSourceFileFromRoot}/solc-out/${contractName}.bin-runtime                                    \
-    --bin-runtime" 2>&1 | tee -a ${outputFile}
+     ./${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}
 
 echo ""                                                                     | tee -a ${outputFile}
 echo "================================================================="    | tee -a ${outputFile}    
@@ -63,16 +62,23 @@ echo "Run Mythril analyze"                                                  | te
 echo "================================================================="    | tee -a ${outputFile}
 echo "" 
 
-docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                 \
-    myth -v 4                                                                   \
+# See https://github.com/ConsenSys/mythril/issues/1735 for the reason of the sed commands
+docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c " \
+    sed -i '67s/match\(.*\)/search(r\"\d+.\d+.\d+\", main_version).group(0)/' /mythril/mythril/mythril/mythril_disassembler.py  \
+    && sed -i '67s/d+/\\\d+/g' /mythril/mythril/mythril/mythril_disassembler.py                                                 \
+    && echo '{  \"remappings\": [ ${remappings} ] }' > /settings.json           \
+    && cd /prj                                                                  \
+    && myth -v 4                                                                \
     analyze                                                                     \
     -o jsonv2                                                                   \
-    --transaction-count 1                                                       \
+    --transaction-count 2                                                       \
     --parallel-solving                                                          \
     --strategy bfs                                                              \
     --max-depth 64                                                              \
     --call-depth-limit 2                                                        \
     --no-onchain-data                                                           \
     --pruning-factor 1                                                          \
-    -f /prj/${pathToSourceFileFromRoot}/solc-out/${contractName}.bin-runtime    \
-    --bin-runtime" 2>&1 | tee -a ${outputFile}
+    --solv ${solcVersion}                                                       \
+    --solc-args \"--base-path /prj\"                                            \
+    --solc-json /settings.json                                                  \
+     ./${pathToSourceFileFromRoot}/${contractName}.sol" 2>&1 | tee -a ${outputFile}

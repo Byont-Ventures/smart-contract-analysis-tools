@@ -19,7 +19,13 @@ pub fn run_mythril(
 ) -> String {
     let mut remappings_formatted = "".to_owned();
     for r in remappings {
-        remappings_formatted.push_str(format!("{r} ").as_str());
+        remappings_formatted.push_str(r#"""#);
+        remappings_formatted.push_str(format!("{r}").as_str());
+        if (r != remappings.last().unwrap()) {
+            remappings_formatted.push_str(r#"", "#);
+        } else {
+            remappings_formatted.push_str(r#"""#);
+        }
     }
     remappings_formatted = format!("'{remappings_formatted}'");
 
