@@ -165,6 +165,7 @@ struct SlitherOutputHumanSummaryAdditionalFieldsTypeNode {}
 
 // Out of date: https://github.com/crytic/slither/wiki/JSON-output
 pub fn format_output_to_markdown(
+    base_path_abs: &str,
     project_root_path_abs: &str,
     security_scan_path_rel: &str,
     contract_name: &str,
@@ -203,7 +204,7 @@ pub fn format_output_to_markdown(
                     serde_json::from_str(&*tmp_string)?;
 
                 let human_summary_content = match format_printer_markdown_human_summary(
-                    project_root_path_abs,
+                    base_path_abs,
                     human_summary_result,
                 ) {
                     Ok(s) => s,
@@ -223,7 +224,7 @@ pub fn format_output_to_markdown(
 }
 
 fn format_printer_markdown_human_summary(
-    project_root_path_abs: &str,
+    base_path_abs: &str,
     json_data: SlitherOutputHumanSummary,
 ) -> Result<String> {
     let mut content = format!("{}\n", json_data.description.replace("\n", "\n\n"));
@@ -244,7 +245,7 @@ fn format_printer_markdown_human_summary(
 
             for e in detector_elements.elements.iter() {
                 let relative_path = &e.source_mapping.filename_relative;
-                let source_path = format!("{project_root_path_abs}/{relative_path}");
+                let source_path = format!("{base_path_abs}/{relative_path}");
 
                 if e.r#type == "function" {
                     content.push_str("\n**In Function**\n");

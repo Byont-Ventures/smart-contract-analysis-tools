@@ -131,6 +131,7 @@ fn main() {
             );
 
             let slither_markdown_content = match slither::format_output_to_markdown(
+                &base_root_abs,
                 &project_root_path_abs,
                 &security_scan_path_rel_from_project,
                 &contract_name,
