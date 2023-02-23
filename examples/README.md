@@ -16,10 +16,6 @@ $ source ~/.bashrc
 $ foundryup
 ```
 
-```bashcd
-$ git submodule update --init --recursive
-```
-
 ## Usage
 
 ### Normal smart-contract development
@@ -35,12 +31,6 @@ Installing Rust.
 ```bash
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 $ source ~/.bashrc
-```
-
-Copy the configuration file.
-
-```bash
-$ cp ./security-scans/analysis-config-example.toml ./analysis-config.toml
 ```
 
 Update `./analysis-config.toml` as seen fit. The run the report generator.

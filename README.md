@@ -14,19 +14,15 @@ An example project that makes use of this repository is [smart-contract-analysis
 - Docker should be installed
   - Make sure that Docker can run without sudo ([docs](https://docs.docker.com/engine/install/linux-postinstall/)).
 
+```bashcd
+$ git submodule update --init --recursive
+```
+
 ## Installing Rust
 
 ```bash
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 $ source ~/.bashrc
-```
-
-## Adding as submodule
-
-In the root of your project run the following command. Afterwards, this repository can be found as a submodule under `<your project root>/security-scans/`.
-
-```bash
-$ git submodule add https://github.com/Byont-Ventures/smart-contract-analysis-tools security-scans
 ```
 
 ## Generating a report
