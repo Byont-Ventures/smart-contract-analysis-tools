@@ -40,9 +40,21 @@ In this configuration file you can define the required paths for your project. Y
 After updating the configuration run the following command from your project root. Depending on which tools are enabled it can take from several seconds to an hour.
 
 ```bash
-$ yarn --cwd <path to this submodule> run   \
-    scan:generate-report                    \
-    <absolute path to config file>
+$ yarn --cwd < path to this security scanner root > run \
+    scan:generate-report                                \
+    < absolute path to repository root >                \
+    < relative path from repo root to source project >  \
+    < absolute path to config toml file >
+```
+
+For example:
+
+```bash
+$ yarn --cwd ./ run             \
+    scan:generate-report        \
+    ${PWD}                      \
+    ./examples                  \
+    ${PWD}/examples/analysis-config.toml
 ```
 
 # Available tools
