@@ -162,33 +162,35 @@ fn main() {
         //     write_to_report(&mut file, &smtchecker_result.replace("\n", "\n\n"));
         // }
 
-        // //---------------
-        // // Mythril
-        // //---------------
-        // if config.mythril.enabled {
-        //     let mythril_header = "## Mythril\n\n";
-        //     write_to_report(&mut file, &mythril_header);
+        //---------------
+        // Mythril
+        //---------------
+        if config.mythril.enabled {
+            let mythril_header = "## Mythril\n\n";
+            write_to_report(&mut file, &mythril_header);
 
-        //     let mythril_result = mythril::run_mythril(
-        //         &project_root_path_abs,
-        //         &security_scan_path_rel,
-        //         &contract_source_path_rel,
-        //         &contract_name,
-        //         &config.environment.solc_version,
-        //         &config.environment.remappings,
-        //     );
+            let mythril_result = mythril::run_mythril(
+                &base_root_abs,
+                &project_root_rel_base,
+                &security_scan_path_rel_from_project,
+                &contract_source_path_rel_from_project,
+                &contract_name,
+                &config.environment.solc_version,
+                &config.environment.remappings,
+            );
 
-        //     let mythril_markdown_content = match mythril::format_output_to_markdown(
-        //         &project_root_path_abs,
-        //         &security_scan_path_rel,
-        //         &contract_name,
-        //     ) {
-        //         Ok(s) => s,
-        //         _ => "".to_string(),
-        //     };
+            let mythril_markdown_content = match mythril::format_output_to_markdown(
+                &base_root_abs,
+                &project_root_path_abs,
+                &security_scan_path_rel_from_project,
+                &contract_name,
+            ) {
+                Ok(s) => s,
+                _ => "".to_string(),
+            };
 
-        //     write_to_report(&mut file, &mythril_markdown_content.replace("\n", "\n\n"));
-        // }
+            write_to_report(&mut file, &mythril_markdown_content.replace("\n", "\n\n"));
+        }
     }
 }
 

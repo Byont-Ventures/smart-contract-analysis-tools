@@ -67,11 +67,11 @@ docker run --rm -v ${projectRoot}:/prj ${dockerImage} bash -c "                 
     myth -v 4                                                                   \
     analyze                                                                     \
     -o jsonv2                                                                   \
-    --transaction-count 2                                                       \
+    --transaction-count 1                                                       \
     --parallel-solving                                                          \
     --strategy bfs                                                              \
-    --max-depth 128                                                             \
-    --call-depth-limit 3                                                        \
+    --max-depth 64                                                              \
+    --call-depth-limit 2                                                        \
     --no-onchain-data                                                           \
     --pruning-factor 1                                                          \
     -f /prj/${pathToSourceFileFromRoot}/solc-out/${contractName}.bin-runtime    \
