@@ -12,6 +12,13 @@ use mythril_runner as mythril;
 use slither_runner as slither;
 use smtchecker_runner as smtchecker;
 
+// Import libraries
+mod generate_report;
+mod read_json;
+
+use generate_report::generate_reports;
+use read_json::read_json;
+
 #[derive(Deserialize)]
 struct Config {
     environment: ConfigEnvironment,
@@ -192,6 +199,9 @@ fn main() {
             write_to_report(&mut file, &mythril_markdown_content.replace("\n", "\n\n"));
         }
     }
+
+    // Generate template from input.json
+    generate_reports(read_json("input.json").unwrap()).unwrap();
 }
 
 fn create_file(file_name: &str) -> std::io::Result<File> {
