@@ -1,3 +1,5 @@
+
+
 #========================================
 # base-ubuntu
 #========================================
@@ -9,9 +11,19 @@ SHELL ["/bin/bash", "-c"]
 
 ARG LLVM_VERSION=12
 
+# Needed for add-apt-repository
+RUN export DEBIAN_FRONTEND=noninteractive   \  
+    && apt update  \
+    && apt upgrade -y   \
+    && apt install -y \
+        build-essential  \
+	    software-properties-common \
+        apt-utils
+
 # Install dependencies
 # https://github.com/runtimeverification/evm-semantics/tree/v1.0.1-0e96c8d#ubuntu
 RUN export DEBIAN_FRONTEND=noninteractive   \
+    && add-apt-repository ppa:deadsnakes/ppa \
     && apt update                           \
     && apt upgrade -y                       \
 	&& apt install -y                       \
@@ -42,7 +54,7 @@ RUN export DEBIAN_FRONTEND=noninteractive   \
 		openjdk-11-jdk                      \
 		pkg-config                          \
 		protobuf-compiler                   \
-		python3                             \
+		python3.10                             \
 		python-pygments                     \
 		rapidjson-dev                       \
 		time                                \
@@ -54,7 +66,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt update                \
     && apt upgrade -y            \
     && apt install -y            \
-        build-essential          \
         debhelper                \
         gcc                      \
         libgdbm-dev              \
@@ -69,14 +80,10 @@ RUN export DEBIAN_FRONTEND=noninteractive \
         libz3-dev                \
         parallel                 \
         pkg-config               \
-        python3-dev              \
-        python3-distutils        \
-        python3-pip              
+        python3.10-dev           \
+        python3.10-distutils
 
-# Needed for add-apt-repository
-RUN apt install -y \
-        apt-utils \
-	    software-properties-common
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10             
 
 # Install git
 RUN add-apt-repository -y ppa:git-core/ppa \
@@ -90,13 +97,26 @@ RUN add-apt-repository -y ppa:git-core/ppa \
 
 FROM base-ubuntu AS base-ubuntu-tooling
 
+RUN apt install -y sudo
+
+ENV USER_ID=1000
+ENV GROUP_ID=1000
+RUN groupadd --gid $GROUP_ID user   \
+    && useradd --create-home --uid $USER_ID --shell /bin/sh --gid user user \
+    && passwd -d user \
+    && usermod -aG sudo user
+
+USER $USER_ID:$GROUP_ID
+WORKDIR /home/user
+ENV USER=user
+
 # Install Haskell
-RUN curl -sSL https://get.haskellstack.org/ | sh
-ENV PATH=/root/.local/bin:$PATH
+# RUN curl -sSL https://get.haskellstack.org/ | sh
+# ENV PATH=/home/user/.local/bin:$PATH
 
 # Intall Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH=/root/.cargo/bin:$PATH
+ENV PATH=/home/user/.cargo/bin:$PATH
 
 #========================================
 # base-ubuntu-tooling-z3
@@ -114,18 +134,18 @@ RUN git clone https://github.com/Z3Prover/z3.git    \
 	&& python3 scripts/mk_make.py                   \
 	&& cd build                                     \
 	&& make -j8                                     \
-	&& make -j8 install                             \
+	&& sudo make -j8 install                        \
     && cd ../../                                    \
     && find ./z3 -mindepth 1 ! -regex '^./z3/build\(/.*\)?' -delete
 
 # For mythril that uses the z3 python module
-ENV PYTHONPATH=/z3/build/python:$PYTHONPATH
-ENV LD_LIBRARY_PATH=/z3/build:$LD_LIBRARY_PATH
+ENV PYTHONPATH=/home/user/z3/build/python:$PYTHONPATH
+ENV LD_LIBRARY_PATH=/home/user/z3/build:$LD_LIBRARY_PATH
 
 # Needed for solc SMTChecker to find it
 RUN export Z3_VERSION_MAIN=$(echo ${Z3_VERSION} | cut -d'.' -f1)        \
     && export Z3_VERSION_MIDDLE=$(echo ${Z3_VERSION} | cut -d'.' -f2)   \
-    && cp /z3/build/libz3.so /lib/libz3.so.${Z3_VERSION_MAIN}.${Z3_VERSION_MIDDLE}
+    && sudo cp /home/user/z3/build/libz3.so /lib/libz3.so.${Z3_VERSION_MAIN}.${Z3_VERSION_MIDDLE}
 
 #========================================
 # base-ubuntu-tooling-z3-solc
@@ -133,7 +153,7 @@ RUN export Z3_VERSION_MAIN=$(echo ${Z3_VERSION} | cut -d'.' -f1)        \
 
 FROM base-ubuntu-tooling-z3 AS base-ubuntu-tooling-z3-solc
 
-RUN DEBIAN_FRONTEND=noninteractive apt install -y libboost-all-dev
+RUN DEBIAN_FRONTEND=noninteractive sudo apt install -y libboost-all-dev
 
 # https://github.com/crytic/solc-select/issues/132 normal solc-select not ready yet for ARM
 # https://github.com/roynalnaruto/svm-rs this is also what foundry uses and provided solc for aarch64 (arm)
@@ -154,7 +174,7 @@ RUN git clone --recursive https://github.com/ethereum/solidity.git              
     && cd ../../                                                                        \
     && find ./solidity -mindepth 1 ! -regex '^./solidity/build\(/.*\)?' -delete
 
-ENV PATH=/solidity/build/solc:$PATH
+ENV PATH=/home/user/solidity/build/solc:$PATH
 
 #========================================
 # base-ubuntu-tooling-z3-solc-kevm
@@ -162,42 +182,33 @@ ENV PATH=/solidity/build/solc:$PATH
 
 FROM base-ubuntu-tooling-z3-solc AS base-ubuntu-tooling-z3-solc-kevm
 
+RUN sudo mkdir -m 0755 /nix && sudo chown user /nix
+
 # Get the evm-semantics repo
 # ARG KEVM_VERSION=1.0.1
-# ARG KEVM_COMMIT=0539c0c
+# ARG KEVM_COMMIT=6b2b9aa
 
-SHELL ["/bin/bash", "-c"]
-
-ARG userName=analyser
-RUN useradd -ms /bin/bash ${userName} \
-    && usermod -aG sudo ${userName}
-
-USER root
-RUN mkdir -m 0755 /nix && chown ${userName} /nix
-RUN ls -l /
-USER ${userName}
-
-# This is a crusial step, otherwise the nix installation will fail.
-# Got the hint from here: https://github.com/NixOS/nix/issues/971#issuecomment-489398535
-ENV USER ${userName}
-
-WORKDIR /home/${userName}
-
-RUN bash <(curl -L https://nixos.org/nix/install)
-RUN source /home/${userName}/.profile && bash <(curl https://kframework.org/install)
-RUN source /home/${userName}/.profile && kup install kevm
+RUN source .profile && source .bashrc \
+    && bash <(curl -L https://nixos.org/nix/install)
+RUN source .profile && source .bashrc \
+    && bash <(curl https://kframework.org/install)
+RUN source .profile && source .bashrc \
+    && sudo mkdir -p /etc/nix && sudo touch /etc/nix/nix.conf \
+    && echo "trusted-users = root user" | sudo tee -a /etc/nix/nix.conf
+RUN source .profile && source .bashrc \
+    && kup install kevm
 
 # RUN git clone https://github.com/runtimeverification/evm-semantics.git /root/evm-semantics  \
 # 	&& cd /root/evm-semantics                                                               \
-# 	&& git checkout v${KEVM_VERSION}-${KEVM_COMMIT}
+# 	&& git checkout ${KEVM_COMMIT}
 
 # WORKDIR /root/evm-semantics
 
 # # Install dependencies with poetry
-# RUN pip3 install virtualenv poetry      \
+#  RUN pip3 install virtualenv poetry \
 #     && cd /root/evm-semantics/kevm-pyk  \
-# 	&& make poetry-install
-# ENV PYTHONPATH=/root/.cache/pypoetry/virtualenvs/kevm-pyk-wYudXE09-py3.8/lib/python3.8/site-packages:$PYTHONPATH
+#  	&& make poetry-install
+# ENV PYTHONPATH=/root/.cache/pypoetry/virtualenvs/kevm-pyk-wYudXE09-py3.10/lib/python3.10/site-packages:$PYTHONPATH
 # ENV PYTHONPATH=/root/evm-semantics/kevm-pyk/src:$PYTHONPATH
 
 # # K Framework
@@ -205,8 +216,8 @@ RUN source /home/${userName}/.profile && kup install kevm
 # #   in deps/k/kernel/src/main/java/org/kframework/parser/ParserUtils.java
 # #   lines 227 and 228
 # RUN git submodule update --init --recursive
-# RUN sed -i '227s/^/\/\/ /' deps/k/kernel/src/main/java/org/kframework/parser/ParserUtils.java \
-#     && sed -i '228s/^/\/\/ /' deps/k/kernel/src/main/java/org/kframework/parser/ParserUtils.java
+# RUN sed -i '237s/^/\/\/ /' deps/k/kernel/src/main/java/org/kframework/parser/ParserUtils.java \
+#     && sed -i '238s/^/\/\/ /' deps/k/kernel/src/main/java/org/kframework/parser/ParserUtils.java
 
 # RUN mkdir -p .build/usr/bin \
 #     && mkdir -p .build/usr/lib/kevm
@@ -217,27 +228,45 @@ RUN source /home/${userName}/.profile && kup install kevm
 # #   https://stackoverflow.com/questions/63746826/what-might-cause-commitandreleasebuffer-invalid-argument-invalid-character
 # # https://github.com/runtimeverification/evm-semantics/issues/1022
 # # https://github.com/runtimeverification/evm-semantics#macos
-# RUN if [ "$(uname -m)" = "aarch64" ]; then                                  \
-#         DEBIAN_FRONTEND=noninteractive apt install -y libnuma-dev           \
-#         && LANG=C.UTF-8 make deps RELEASE=true APPLE_SILICON=true           \
-#         && LANG=C.UTF-8 make libsecp256k1                                   \
-#         && LANG=C.UTF-8 make plugin-deps RELEASE=true APPLE_SILICON=true    \
-#         && LANG=C.UTF-8 make build RELEASE=true APPLE_SILICON=true;         \
-#     else                                                                    \
-#         make deps RELEASE=true                                              \
-#         && make plugin-deps RELEASE=true                                    \
-#         && make build RELEASE=true;                                         \
-#     fi
+# # RUN stack install ghc-bignum
+# # RUN if [ "$(uname -m)" = "aarch64" ]; then                                  \
+# #         DEBIAN_FRONTEND=noninteractive apt install -y libnuma-dev           \
+# #         && LANG=C.UTF-8 make deps RELEASE=true APPLE_SILICON=true           \
+# #         && LANG=C.UTF-8 make libsecp256k1                                   \
+# #         && LANG=C.UTF-8 make plugin-deps RELEASE=true APPLE_SILICON=true    \
+# #         && LANG=C.UTF-8 make build RELEASE=true APPLE_SILICON=true;         \
+# #     else                                                                    \
+# #         make deps RELEASE=true                                              \
+# #         && make plugin-deps RELEASE=true                                    \
+# #         && make build RELEASE=true;                                         \
+# #     fi
 
-# ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
+# RUN stack upgrade
+# RUN if [ "$(uname -m)" = "aarch64" ]; then DEBIAN_FRONTEND=noninteractive apt install -y libnuma-dev; fi
+# RUN if [ "$(uname -m)" = "aarch64" ]; then stack install ghc-bignum; fi
+# RUN if [ "$(uname -m)" = "aarch64" ]; then LANG=C.UTF-8 make deps RELEASE=true APPLE_SILICON=true; fi
+# # RUN if [ "$(uname -m)" = "aarch64" ]; then LANG=C.UTF-8 make libsecp256k1; fi
+# # RUN if [ "$(uname -m)" = "aarch64" ]; then LANG=C.UTF-8 make plugin-deps RELEASE=true APPLE_SILICON=true; fi
+# # RUN if [ "$(uname -m)" = "aarch64" ]; then LANG=C.UTF-8 make build RELEASE=true APPLE_SILICON=true; fi
+# # RUN if [ "$(uname -m)" != "aarch64" ]; then     \
+# #     make deps RELEASE=true                      \
+# #         && make plugin-deps RELEASE=true        \
+# #         && make build RELEASE=true;             \
+# #     fi
 
-# WORKDIR /
+# # ENV PATH=/root/evm-semantics/deps/k/k-distribution/bin:$PATH
+
+# # WORKDIR /
 
 #========================================
 # final-image
 #========================================
 
 FROM base-ubuntu-tooling-z3-solc-kevm AS final-image
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH=/home/${userName}/.cargo/bin:$PATH
 
 ## For pyo when installing Mythril
 RUN rustup default nightly
